@@ -14,10 +14,14 @@ function Test-Help
     .EXAMPLE
         Test-Help -ScriptBlockAst $ScriptBlockAst
     .NOTES
-        This module examines only functions with paramter blocks even if they are intentionally empty.
-        Documentation of script parameters and parameters of SriptBlocks are not examined.
+        Notice variable 'UseSonarQube'.
+        If set to '$true', Test-Help only inspects functions and ignores script and scriptblock parameters.
+        Set 'UseSonarQube' to '$true' when using PSScriptAnalyzer together with SonarQube and the Plugin mentioned below.
+        Otherwise it leads to false positives.
     .LINK
         https://learn.microsoft.com/en-us/powershell/scripting/developer/help/writing-comment-based-help-topics?view=powershell-7.3
+    .LINK
+        https://github.com/gretard/sonar-ps-plugin
     #>
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
@@ -31,6 +35,7 @@ function Test-Help
 
     begin {
 
+        New-Variable -Force -Name UseSonarQube   -Value $false
         New-Variable -Force -Name synopsisLength -Value 100
 
         #region FindCodeBlocks
@@ -45,6 +50,20 @@ function Test-Help
             [bool]$ReturnValue = $false
 
             if ($Ast -is [System.Management.Automation.Language.FunctionDefinitionAst])
+            {
+                $ReturnValue = $true;
+            }
+            return $ReturnValue
+        }
+
+        [ScriptBlock]$ScriptBlockPredicate = {
+            param
+            (
+                [System.Management.Automation.Language.Ast]$Ast
+            )
+            [bool]$ReturnValue = $false
+
+            if ($Ast -is [System.Management.Automation.Language.ScriptBlockAst])
             {
                 $ReturnValue = $true;
             }
@@ -161,19 +180,36 @@ function Test-Help
     {
         try
         {
-            [System.Management.Automation.Language.FunctionDefinitionAst[]]$functionBlockAsts = $ScriptBlockAst.FindAll($FunctionPredicate, $true) |
-                Where-Object {$null -ne $_.Body.ParamBlock -and $null -ne $_.Body.ParamBlock.Parameters}
+            [System.Management.Automation.Language.FunctionDefinitionAst[]]$asts = $null
 
-            foreach($currentAst in $functionBlockAsts)
+            if($UseSonarQube)
+            {
+                [System.Management.Automation.Language.FunctionDefinitionAst[]]$asts = $ScriptBlockAst.FindAll($FunctionPredicate, $true) |
+                    Where-Object {$null -ne $_.Body.ParamBlock -and $null -ne $_.Body.ParamBlock.Parameters}
+            }
+            else {
+                [System.Management.Automation.Language.ScriptBlockAst[]]$asts = $ScriptBlockAst.FindAll($ScriptBlockPredicate, $true) |
+                    Where-Object {$null -ne $_.ParamBlock -and $null -ne $_.ParamBlock.Parameters}
+            }
+
+
+            foreach($currentAst in $asts)
             {
                 $helpContent = $currentAst.GetHelpContent()
-                $parameters = $currentAst.Body.ParamBlock.Parameters
+                if($UseSonarQube)
+                {
+                    $parameters = $currentAst.Body.ParamBlock.Parameters
+                }
+                else{
+                    $parameters = $currentAst.ParamBlock.Parameters
+                }
+
 
                 if($null -eq $helpContent) {
                     $params = @{
                         ScriptAst = $currentAst
-                        Description = "Useful but optional description text."
-                        Correction = "Code and function parameter(s) should be documeted."
+                        Description = "Your code should be documented."
+                        Correction = "Code and function parameter(s) should be documented."
                         Message = "Missing <# .SYNOPSIS #>. Code and function parameter(s) should be documented."
                         RuleName = "Test-Help"
                         Severity = "Warning"
@@ -204,7 +240,13 @@ function Test-Help
                 $missingParameters = Compare-Object -ReferenceObject $helpParameters -DifferenceObject $parameterBlockParameters
                 foreach($missingParameter in $missingParameters)
                 {
-                    $errorProperty = Get-ErrorProperty -Missing $missingParameter -FunctionAst $currentAst
+                    if($UseSonarQube) {
+                        $errorProperty = Get-ErrorProperty -Missing $missingParameter -FunctionAst $currentAst
+                    }
+                    else {
+                        $errorProperty = Get-ErrorProperty -Missing $missingParameter -ScriptAst $currentAst
+                    }
+
                     Get-PSScriptAnalyzerError -ErrorProperty $errorProperty
                 }
 
