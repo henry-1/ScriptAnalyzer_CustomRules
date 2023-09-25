@@ -35,7 +35,7 @@ function Test-Help
 
     begin {
 
-        New-Variable -Force -Name UseSonarQube   -Value $false
+        New-Variable -Force -Name UseSonarQube   -Value $true
         New-Variable -Force -Name synopsisLength -Value 100
 
         #region FindCodeBlocks
