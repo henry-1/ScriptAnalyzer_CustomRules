@@ -23,7 +23,7 @@
 
     begin{
         # this is what youwant to be the max intendation for your scripts
-        New-Variable -Force -Name MaxAllowedIntendation -Value 5
+        New-Variable -Force -Name MaxAllowedIntendation -Value 6
 
         # these vars track the state of intendation
         New-Variable -Force -Name intendationDepth      -Value 0
@@ -38,8 +38,7 @@
             )
             [bool]$ReturnValue = $false
 
-            if ($Ast -is [System.Management.Automation.Language.ScriptBlockAst])
-            {
+            if ($Ast -is [System.Management.Automation.Language.ScriptBlockAst]) {
                 $ReturnValue = $true;
             }
             return $ReturnValue
@@ -52,13 +51,11 @@
             )
             [bool]$ReturnValue = $false
 
-            if ($Ast -is [System.Management.Automation.Language.Ast])
-            {
+            if ($Ast -is [System.Management.Automation.Language.Ast]) {
                 $ReturnValue = $true;
             }
             return $ReturnValue
         }
-
 
         function Get-PSScriptAnalyzerError
         {
@@ -115,6 +112,7 @@
             }
         }
 
+        $allLines = $ScriptblockAst.Extent.Text.Split("`n")
         $allAsts = $ScriptblockAst.FindAll($AllAstsPredicate,$true)
     }
     process{
@@ -124,50 +122,50 @@
 
         foreach($ast in $asts)
         {
+            $start = 0
             $tokens = [Management.Automation.PSParser]::Tokenize($ast, [ref]$null)
-            foreach($token in $tokens)
-            {
-                switch($token)
-                {
-                    {$_.Type -eq "GroupStart" -and $_.Content.Contains("{")}
-                    {
-                        $intendationDepth++
-                        if($intendationDepth -gt $maxIntendationDepth) { $maxIntendationDepth = $intendationDepth }
-                        if($maxIntendationDepth -ge $MaxAllowedIntendation -and -not $maxDepthReached)
-                        {
-                            $start = $token.Start
-                            $maxDepthReached = $true
-                            Write-Verbose "MaxAllowedIntendation reached at line $($token.StartLine)"
-                        }
-                        break
+            foreach($token in $tokens) {
+                if($token.Type -eq "GroupStart" -and $token.Content.Contains("{")) {
+                    $intendationDepth++
+                    if($intendationDepth -gt $maxIntendationDepth) {
+                        $maxIntendationDepth = $intendationDepth
                     }
-                    {$_.Type -eq "GroupEnd" -and $_.Content.Equals("}")}
-                    {
-                        $intendationDepth--
-                        if($intendationDepth -lt $MaxAllowedIntendation -and $maxDepthReached)
-                        {
-                            [System.Management.Automation.Language.Ast]$codeBlock = $allAsts | Where-Object {$_.Extent.StartOffset -eq $start } | Select-Object -First 1
-                            if($null -ne $codeBlock)
-                            {
-                                $params = @{
-                                    StartLine = $codeBlock.Extent.StartLineNumber
-                                    EndLine = $codeBlock.Extent.EndLineNumber
-                                    StartColumn = $codeBlock.Extent.StartColumnNumber
-                                    EndColumn = $codeBlock.Extent.EndColumnNumber
-                                    Correction = "Refactor code to reduce intendation."
-                                    OptionalDescription = "Code intendation should not exceed $MaxAllowedIntendation."
-                                    Message = "Maximum intendation exceeded in code. Please reduce intendation by refactoring code."
-                                    Extent = $codeBlock.Extent
-                                }
-                                Get-PSScriptAnalyzerError @params
-                                }
+                    if($maxIntendationDepth -ge $MaxAllowedIntendation -and -not $maxDepthReached) {
+                        $start = $token.StartLine
+                        $maxDepthReached = $true
+                        Write-Verbose "MaxAllowedIntendation reached at line $($token.StartLine)"
+                    }
+                }
+                if ($token.Type -eq "GroupEnd" -and $token.Content.Equals("}")) {
+                    $intendationDepth--
+                    if($intendationDepth -lt $MaxAllowedIntendation -and $maxDepthReached) {
 
-                            Write-Verbose ("max depth of {0} left at line {1}" -f $maxIntendationDepth.ToString(), $token.EndLine.ToString())
-                            $maxIntendationDepth = 0
-                            $maxDepthReached = $false
+                        [System.Management.Automation.Language.Ast]$codeBlock = $allAsts | Where-Object {$_.Extent.StartLineNumber -eq $start } | Select-Object -First 1
+
+                        if($null -eq $codeBlock -and $allLines[$start].ToString().Trim().EndsWith("{")) {
+                            [System.Management.Automation.Language.Ast]$codeBlock = $allAsts | Where-Object {$_.Extent.StartLineNumber -eq $start + 1 } | Select-Object -First 1
                         }
-                        if($intendationDepth -eq 0) {$maxIntendationDepth = 0}
-                        break
+
+                        if($null -ne $codeBlock) {
+                            $params = @{
+                                StartLine = $codeBlock.Extent.StartLineNumber
+                                EndLine = $codeBlock.Extent.EndLineNumber
+                                StartColumn = $codeBlock.Extent.StartColumnNumber
+                                EndColumn = $codeBlock.Extent.EndColumnNumber
+                                Correction = "Refactor code to reduce intendation."
+                                OptionalDescription = "Code intendation should not exceed $MaxAllowedIntendation."
+                                Message = "Maximum intendation exceeded in code. Please reduce intendation by refactoring code."
+                                Extent = $codeBlock.Extent
+                            }
+                            Get-PSScriptAnalyzerError @params
+                        }
+
+                        Write-Verbose ("max depth of {0} left at line {1}" -f $maxIntendationDepth.ToString(), $token.EndLine.ToString())
+                        $maxIntendationDepth = 0
+                        $maxDepthReached = $false
+                    }
+                    if($intendationDepth -eq 0) {
+                        $maxIntendationDepth = 0
                     }
                 }
             }

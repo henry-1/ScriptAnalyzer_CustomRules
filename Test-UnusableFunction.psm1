@@ -110,18 +110,13 @@ function Test-UnusableFunction {
             {
                 $commandElement = $_
                 $command = $commandElement.CommandElements[0]
-                switch($command)
-                {
-                    "Write-Host"
-                    {
-                        $msg = "Write-Host makes your scripts unsuable inside of other scripts. If you need to add tracing, consider Write-Verbose and Write-Debug"
-                        break
-                    }
-                    "Read-Host" {
-                        $msg = "Read-Host makes your scripts unsuable inside of other scripts, because it means part of your script cannot be controlled by parameters.  If you need to prompt for a value, you should create a mandatory parameter."
-                        break
-                    }
+                if($command -eq "Write-Host") {
+                    $msg = "Write-Host makes your scripts unsuable inside of other scripts. If you need to add tracing, consider Write-Verbose and Write-Debug"
                 }
+                if($command -eq "Read-Host") {
+                    $msg = "Read-Host makes your scripts unsuable inside of other scripts, because it means part of your script cannot be controlled by parameters.  If you need to prompt for a value, you should create a mandatory parameter."
+                }
+
 
                 $params = @{
                     StartLine = $commandElement.Extent.StartLineNumber

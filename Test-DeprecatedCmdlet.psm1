@@ -2681,8 +2681,8 @@
                     [string]$correction = "Cmdlet {0} is deprecated. Please use another module." -f $_.Value
                     [string]$optionalDescription = 'Microsoft deprecated a list of Powershell modules. Please avoid using cmdlets from these modules.'
                     $objParams = @{
-                    TypeName = 'Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.CorrectionExtent'
-                    ArgumentList = $startLineNumber, $endLineNumber, $startColumnNumber,
+                        TypeName = 'Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.CorrectionExtent'
+                        ArgumentList = $startLineNumber, $endLineNumber, $startColumnNumber,
                                     $endColumnNumber, $correction, $optionalDescription
                     }
                     $correctionExtent = New-Object @objParams

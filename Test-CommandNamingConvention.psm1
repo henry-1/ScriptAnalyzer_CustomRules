@@ -102,8 +102,7 @@ function Test-CommandNamingConvention {
             )
             [bool]$ReturnValue = $false
 
-            if ($Ast -is [System.Management.Automation.Language.CommandAst])
-            {
+            if ($Ast -is [System.Management.Automation.Language.CommandAst]) {
                 $ReturnValue = $true;
             }
             return $ReturnValue
@@ -137,52 +136,49 @@ function Test-CommandNamingConvention {
         {
             $commandName = $ast.CommandElements[0].Value
             $verb, $noun, $rest = $commandName -split '-'
-            if(-not [string]::IsNullOrEmpty($verb))
-            {
-                # Test approved verbs
-                if (-not $standardVerbs.$verb) {
-                    $params = @{
-                        CommandAst = $ast
-                        Description = "$commandName uses a non-standard verb, $Verb."
-                        Correction = "Please change it.  Use Get-Verb to see all approved verbs"
-                        Message = "Usage of non-approved verb."
-                        RuleName = "Test-CommandNamingConvention"
-                        Severity = "Warning"
-                        RuleSuppressionID = "Test-CommandNamingConvention"
-                    }
-                    $result += Get-PSScriptAnalyzerError @params
-                }
 
-                # Test invalid command characters
-                if ($commandName.IndexOfAny("#,(){}[]&/\`$^;:`"'<>|?@``*%+=~ ".ToCharArray()) -ne -1)
-                {
-                    $params = @{
-                        CommandAst = $ast
-                        Description = "$commandName uses invalid characters."
-                        Correction = "Please rename $CommandName."
-                        Message = "Usage of invalid characters in command."
-                        RuleName = "Test-CommandNamingConvention"
-                        Severity = "Warning"
-                        RuleSuppressionID = "Test-CommandNamingConvention"
-                    }
-                    $result += Get-PSScriptAnalyzerError @params
+            # Test approved verbs
+            if ((-not [string]::IsNullOrEmpty($verb)) -and (-not $standardVerbs.$verb)) {
+                $params = @{
+                    CommandAst = $ast
+                    Description = "$commandName uses a non-standard verb, $Verb."
+                    Correction = "Please change it.  Use Get-Verb to see all approved verbs"
+                    Message = "Usage of non-approved verb."
+                    RuleName = "Test-CommandNamingConvention"
+                    Severity = "Warning"
+                    RuleSuppressionID = "Test-CommandNamingConvention"
                 }
-
-                # Test if command contains more parts than verb and noun
-                if ($rest) {
-                    $params = @{
-                        CommandAst = $ast
-                        Description = "$commandName contains more parts than verb and noun."
-                        Correction = "Please rename $CommandName."
-                        Message = "Command contains more parts than verb and noun."
-                        RuleName = "Test-CommandNamingConvention"
-                        Severity = "Warning"
-                        RuleSuppressionID = "Test-CommandNamingConvention"
-                    }
-                    $result += Get-PSScriptAnalyzerError @params
-                }
+                $result += Get-PSScriptAnalyzerError @params
             }
 
+            # Test invalid command characters
+            if ($commandName.IndexOfAny("#,(){}[]&/\`$^;:`"'<>|?@``*%+=~ ".ToCharArray()) -ne -1)
+            {
+                $params = @{
+                    CommandAst = $ast
+                    Description = "$commandName uses invalid characters."
+                    Correction = "Please rename $CommandName."
+                    Message = "Usage of invalid characters in command."
+                    RuleName = "Test-CommandNamingConvention"
+                    Severity = "Warning"
+                    RuleSuppressionID = "Test-CommandNamingConvention"
+                }
+                $result += Get-PSScriptAnalyzerError @params
+            }
+
+            # Test if command contains more parts than verb and noun
+            if ($rest) {
+                $params = @{
+                    CommandAst = $ast
+                    Description = "$commandName contains more parts than verb and noun."
+                    Correction = "Please rename $CommandName."
+                    Message = "Command contains more parts than verb and noun."
+                    RuleName = "Test-CommandNamingConvention"
+                    Severity = "Warning"
+                    RuleSuppressionID = "Test-CommandNamingConvention"
+                }
+                $result += Get-PSScriptAnalyzerError @params
+            }
         }
         if($result.Count -gt 0)
         {
