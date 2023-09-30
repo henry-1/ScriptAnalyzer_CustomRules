@@ -83,9 +83,9 @@
             [Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
                 "Message"              = $Message
                 "Extent"               = $Extent
-                "RuleName"             = "Test-IntendationDepth"
+                "RuleName"             = "Test-IfElse"
                 "Severity"             = "Warning"
-                "RuleSuppressionID"    = "Test-IntendationDepth"
+                "RuleSuppressionID"    = "Test-IfElse"
                 "SuggestedCorrections" = $suggestedCorrections
             }
         }
