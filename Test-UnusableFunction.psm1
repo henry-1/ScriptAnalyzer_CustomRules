@@ -81,7 +81,7 @@ function Test-UnusableFunction {
             }
         }
 
-        # Find function block
+        # Find command block
         [ScriptBlock]$CommandPredicate = {
             <#
                 .SYNOPSIS
