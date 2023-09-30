@@ -204,7 +204,7 @@ function Test-Help
                     $parameters = $currentAst.ParamBlock.Parameters
                 }
 
-
+                # violation if there is no help at all
                 if($null -eq $helpContent) {
                     $params = @{
                         ScriptAst = $currentAst
@@ -220,8 +220,28 @@ function Test-Help
                     continue
                 }
 
-                #region function parameter and parameter documentation mismatch
+                # violation if a parameter documentation has no descriptive explanation
+                $helpContent | Select-Object -ExpandProperty Parameters | Select-Object -First 1  |     # take the first if not null
+                    ForEach-Object{
+                        foreach($key in $_.Keys)
+                        {
+                            if([string]::IsNullOrEmpty($_[$key].ToString().Trim()))
+                            {
+                                $params = @{
+                                    ScriptAst = $currentAst
+                                    Description = "The parameter $key should be documented."
+                                    Correction = "Please add descriptive text to your parameter documentation for .PARAMETER $key"
+                                    Message = "Missing parameter documentation in for .PARAMETER $key."
+                                    RuleName = "Test-Help"
+                                    Severity = "Warning"
+                                    RuleSuppressionID = "Test-Help"
+                                }
+                                Get-PSScriptAnalyzerError -ErrorProperty $params
+                            }
+                        }
+                    }
 
+                #region function parameter and parameter documentation mismatch
                 $parameterBlockParameters = @()
                 $helpParameters  = @()
 
@@ -282,7 +302,7 @@ function Test-Help
                     Get-PSScriptAnalyzerError $params
                 }
 
-                if($helpContent.Synopsis.Length -gt $synopsisLength)                {
+                if($helpContent.Synopsis.Length -gt $synopsisLength) {
                     $params = @{
                         ScriptAst = $currentAst
                         Description = "Help should be contain concise."
