@@ -35,27 +35,6 @@
             return $ReturnValue
         }
 
-        # Find script block
-        [ScriptBlock]$CommandPredicate = {
-            <#
-                .SYNOPSIS
-                    Get Prarameter from script
-                .PARAMETER Ast
-                    AST from script code
-            #>
-            param
-            (
-                [System.Management.Automation.Language.Ast]$Ast
-            )
-            [bool]$ReturnValue = $false
-
-            if ($Ast -is [System.Management.Automation.Language.ScriptBlockAst])
-            {
-                $ReturnValue = $true;
-            }
-            return $ReturnValue
-        }
-
         function Get-PSScriptAnalyzerError
         {
             <#
