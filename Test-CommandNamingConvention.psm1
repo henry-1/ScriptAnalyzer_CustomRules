@@ -2,9 +2,10 @@
 function Test-CommandNamingConvention {
     <#
         .SYNOPSIS
-            Test-CommandNamingConvention
+            Test Powershell scripts that they adhere to naming conventions.
         .DESCRIPTION
-            Microsoft recommends usage of verb-noun convention for naming of cmdlets, commands and functions.
+            Microsoft recommends usage of verb-noun convention for naming of cmdlets, commands and functions
+            and also suggests a list of 'approved verbs' to be used.
         .PARAMETER ScriptblockAst
             AST of the script to be examined.
         .INPUTS

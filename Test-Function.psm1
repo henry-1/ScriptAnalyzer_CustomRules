@@ -4,13 +4,16 @@ function Test-Function {
         .SYNOPSIS
             Testing length of function blocks.
         .DESCRIPTION
-            One of the clean code principles is that function should not be too long
+            One of the clean code principles is that function should not be too long.
+            The test counts only lines of code in 'begin', 'process' and 'end' parts of functions in a script.
         .PARAMETER ScriptblockAst
             AST of the script to be examined.
         .INPUTS
             [System.Management.Automation.Language.ScriptBlockAst]
         .OUTPUTS
             [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]]
+        .NOTES
+            You can set 'MaxFunctionContentLength' variable to define your own limit.
         .LINK
             https://de.wikipedia.org/wiki/Clean_Code
     #>
@@ -45,6 +48,7 @@ function Test-Function {
             return $ReturnValue
         }
 
+        # Define your max size of function blocks.
         New-Variable -Force -Name MaxFunctionContentLength -Value 50
     }
 

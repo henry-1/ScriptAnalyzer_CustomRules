@@ -3,8 +3,8 @@
         .SYNOPSIS
             Test-DeprecatedCmdlet
         .DESCRIPTION
-            Microsoft deprecates 3 commonly used Powershell modules.
-            Test-DeprecatedCmdlet.psm1 integrates with PSScriptAnalyzer to find possible usage of one ore more of cmdlets in these modules.
+            Microsoft has deprected 3 commonly used Powershell modules.
+            Test-DeprecatedCmdlet.psm1 integrates with PSScriptAnalyzer to find possible usage of cmdlets from these modules.
         .PARAMETER ScriptblockAst
             AST of the script to be examined.
         .INPUTS

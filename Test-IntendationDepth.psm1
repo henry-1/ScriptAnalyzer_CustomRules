@@ -1,19 +1,20 @@
 ﻿function Test-IntendationDepth
 {
-<#
-    .SYNOPSIS
-        Testing intendation depth of Powershell scripts.
-    .DESCRIPTION
-        Code complexity increases by number of intendations of code.
-        In SonarQube counting the number of nested code paths is called Coginitive Complexity.
-    .PARAMETER ScriptBlockAst
-        ScriptBlockAst to analyze
-    .EXAMPLE
-        Test-IntendationDepth -ScriptBlockAst $ScriptBlockAst
-    .LINK
-        https://blog.devgenius.io/sonarqube-cognitive-complexity-265640dbad3e
-#>
-[cmdletbinding()]
+    <#
+        .SYNOPSIS
+            Testing intendation depth of Powershell scripts.
+        .DESCRIPTION
+            Code complexity increases by number of intendations in code.
+        .PARAMETER ScriptBlockAst
+            ScriptBlockAst to analyze
+        .EXAMPLE
+            Test-IntendationDepth -ScriptBlockAst $ScriptBlockAst
+        .NOTES
+            You can set 'MaxAllowedIntendation' variable to define your own limit.
+        .LINK
+            https://blog.devgenius.io/sonarqube-cognitive-complexity-265640dbad3e
+    #>
+    [cmdletbinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
     param (
         [parameter( Mandatory )]

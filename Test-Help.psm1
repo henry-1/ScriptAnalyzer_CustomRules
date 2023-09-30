@@ -2,8 +2,9 @@ function Test-Help
 {
     <#
     .SYNOPSIS
-        Test functions missing parameter documentation for any of their parameters.
+        Test scripts and functions for missing documentation.
     .DESCRIPTION
+        A SYNOPSIS should be defined for every script and function.
         Every function, script and parameter should have a descriptive help defined in .SYNOPSIS.
     .PARAMETER ScriptBlockAst
         ScriptBlockAst to analyze

@@ -5,7 +5,7 @@ function Test-UnusableFunction {
         .SYNOPSIS
             Test-UnusableFunction checks for cmdlets wich make your script unusable in automation.
         .DESCRIPTION
-            Using cmdlets wich require user interaction make Powershell scripts unusable in batch jobs and automation jobs.
+            Using cmdlets wich require user interaction make Powershell scripts unusable in batch and automation jobs.
         .PARAMETER ScriptblockAst
             AST of the script to be examined.
         .INPUTS
@@ -58,7 +58,8 @@ function Test-UnusableFunction {
                 [string]$Correction,
                 [string]$OptionalDescription,
                 [string]$Message,
-                $Extent
+                $Extent,
+                $Henry
             )
 
             $objParams = @{
