@@ -133,6 +133,9 @@ function Test-CommandNamingConvention {
     process{
         $result = @()
         $commandAsts = $ScriptblockAst.FindAll( $CommandPredicate, $true)
+        try{
+
+
         foreach($ast in $commandAsts)
         {
             $commandName = $ast.CommandElements[0].Value
@@ -153,7 +156,7 @@ function Test-CommandNamingConvention {
             }
 
             # Test invalid command characters
-            if ($commandName.IndexOfAny("#,(){}[]&/\`$^;:`"'<>|?@``*%+=~ ".ToCharArray()) -ne -1)
+            if (-not [string]::IsNullOrEmpty($commandName) -and $commandName.IndexOfAny("#,(){}[]&/\`$^;:`"'<>|?@``*%+=~ ".ToCharArray()) -ne -1)
             {
                 $params = @{
                     CommandAst = $ast
@@ -180,6 +183,11 @@ function Test-CommandNamingConvention {
                 }
                 $result += Get-PSScriptAnalyzerError @params
             }
+        }
+    }
+        catch
+        {
+            throw $_
         }
         if($result.Count -gt 0)
         {
