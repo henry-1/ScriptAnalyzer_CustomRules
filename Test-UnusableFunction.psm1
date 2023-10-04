@@ -17,6 +17,7 @@ function Test-UnusableFunction {
     #>
     [cmdletbinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Test-Function', '', Justification = 'Required by PSScriptAnalyzer', Scope = 'function')]
     param (
         [parameter( Mandatory )]
         [ValidateNotNullOrEmpty()]
@@ -58,8 +59,7 @@ function Test-UnusableFunction {
                 [string]$Correction,
                 [string]$OptionalDescription,
                 [string]$Message,
-                $Extent,
-                $Henry
+                $Extent
             )
 
             $objParams = @{
@@ -118,17 +118,15 @@ function Test-UnusableFunction {
                     $msg = "Read-Host makes your scripts unsuable inside of other scripts, because it means part of your script cannot be controlled by parameters.  If you need to prompt for a value, you should create a mandatory parameter."
                 }
 
-
-                $params = @{
-                    StartLine = $commandElement.Extent.StartLineNumber
-                    EndLine = $commandElement.Extent.EndLineNumber
-                    StartColumn = $commandElement.Extent.StartColumnNumber
-                    EndColumn = $commandElement.Extent.EndColumnNumber
-                    Correction = "Command {0} makes your script unusable." -f $commandElement.Value
-                    OptionalDescription = 'Rewrite your script.'
-                    Message = $msg
-                    Extent = $commandElement.Extent
-                }
+                $params = {}
+                $params.Add("StartLine", $commandElement.Extent.StartLineNumber)
+                $params.Add("EndLine", $commandElement.Extent.EndLineNumber)
+                $params.Add("StartColumn", $commandElement.Extent.StartColumnNumber)
+                $params.Add("EndColumn", $codeBlock.Extent.EndColumnNumber)
+                $params.Add("Correction",  "Command $($commandElement.Value) makes your script unusable.")
+                $params.Add("OptionalDescription", 'Rewrite your script.')
+                $params.Add("Message", $msg)
+                $params.Add("Extent", $commandElement.Extent)
 
                 Get-PSScriptAnalyzerError @params
             }
@@ -139,16 +137,14 @@ function Test-UnusableFunction {
             ForEach-Object {
                 $token = $_
 
-                $params = @{
-                    StartLine = $token.StartLine
-                    EndLine = $token.EndLine
-                    StartColumn = $token.StartColumn
-                    EndColumn = $token.EndColumn
-                    Correction = "Usage of {0} makes your script unusable." -f $token.Content
-                    OptionalDescription = 'Rewrite your script.'
-                    Message = "Your script uses {0}, wich makes it only usable in Powershell.exe." -f $token.Content
-                    Extent = $ScriptblockAst.Extent
-                }
+                $params.Add("StartLine", $token.StartLine)
+                $params.Add("EndLine", $token.EndLine)
+                $params.Add("StartColumn", $token.StartColumn)
+                $params.Add("EndColumn", $token.EndColumn)
+                $params.Add("Correction",  "Usage of $($token.Content) makes your script unusable.")
+                $params.Add("OptionalDescription", 'Rewrite your script.')
+                $params.Add("Message", "Your script uses $($token.Content), wich makes it only usable in Powershell.exe.")
+                $params.Add("Extent", $commandElement.Extent)
 
                 Get-PSScriptAnalyzerError @params
             }

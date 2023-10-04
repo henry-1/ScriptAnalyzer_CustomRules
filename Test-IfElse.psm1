@@ -15,6 +15,7 @@
     #>
     [cmdletbinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Test-Function', '', Justification = 'Required by PSScriptAnalyzer', Scope = 'function')]
     param (
         [parameter( Mandatory )]
         [ValidateNotNullOrEmpty()]

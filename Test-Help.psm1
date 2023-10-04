@@ -26,6 +26,7 @@ function Test-Help
     #>
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Test-Function', '', Justification = 'Required by PSScriptAnalyzer', Scope = 'function')]
     Param
     (
         [Parameter(Mandatory)]
@@ -183,26 +184,23 @@ function Test-Help
         {
             [System.Management.Automation.Language.FunctionDefinitionAst[]]$asts = $null
 
+            [System.Management.Automation.Language.ScriptBlockAst[]]$asts = $ScriptBlockAst.FindAll($ScriptBlockPredicate, $true) |
+                Where-Object {$null -ne $_.ParamBlock -and $null -ne $_.ParamBlock.Parameters}
+
             if($UseSonarQube)
             {
                 [System.Management.Automation.Language.FunctionDefinitionAst[]]$asts = $ScriptBlockAst.FindAll($FunctionPredicate, $true) |
                     Where-Object {$null -ne $_.Body.ParamBlock -and $null -ne $_.Body.ParamBlock.Parameters}
             }
-            else {
-                [System.Management.Automation.Language.ScriptBlockAst[]]$asts = $ScriptBlockAst.FindAll($ScriptBlockPredicate, $true) |
-                    Where-Object {$null -ne $_.ParamBlock -and $null -ne $_.ParamBlock.Parameters}
-            }
-
 
             foreach($currentAst in $asts)
             {
                 $helpContent = $currentAst.GetHelpContent()
+                $parameters = $currentAst.ParamBlock.Parameters
+
                 if($UseSonarQube)
                 {
                     $parameters = $currentAst.Body.ParamBlock.Parameters
-                }
-                else{
-                    $parameters = $currentAst.ParamBlock.Parameters
                 }
 
                 # violation if there is no help at all
@@ -261,11 +259,9 @@ function Test-Help
                 $missingParameters = Compare-Object -ReferenceObject $helpParameters -DifferenceObject $parameterBlockParameters
                 foreach($missingParameter in $missingParameters)
                 {
+                    $errorProperty = Get-ErrorProperty -Missing $missingParameter -ScriptAst $currentAst
                     if($UseSonarQube) {
                         $errorProperty = Get-ErrorProperty -Missing $missingParameter -FunctionAst $currentAst
-                    }
-                    else {
-                        $errorProperty = Get-ErrorProperty -Missing $missingParameter -ScriptAst $currentAst
                     }
 
                     Get-PSScriptAnalyzerError -ErrorProperty $errorProperty

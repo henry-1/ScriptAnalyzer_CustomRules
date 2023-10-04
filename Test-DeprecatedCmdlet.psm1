@@ -1,4 +1,6 @@
-﻿function Test-DeprecatedCmdlet {
+﻿
+#PSSCRIPTANALYZER SuppressOnce Test-Function
+function Test-DeprecatedCmdlet {
     <#
         .SYNOPSIS
             Test-DeprecatedCmdlet
@@ -16,6 +18,7 @@
     #>
     [cmdletbinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Test-Function', '', Justification = 'Required by PSScriptAnalyzer', Scope = 'function')]
     param (
         [parameter( Mandatory )]
         [ValidateNotNullOrEmpty()]
@@ -2655,11 +2658,10 @@
                 if(-not $result.ContainsKey($_.Name))
                 {
                     $result.Add($_.Name, @($_.Source))
-                }
-                else {
-                    $result[$_.Name] += $_.Source
+                    continue
                 }
 
+                $result[$_.Name] += $_.Source
             }
 
             $result

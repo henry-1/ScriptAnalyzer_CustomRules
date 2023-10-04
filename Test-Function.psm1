@@ -19,6 +19,7 @@ function Test-Function {
     #>
     [cmdletbinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Test-Function', '', Justification = 'Required by PSScriptAnalyzer', Scope = 'function')]
     param (
         [parameter( Mandatory )]
         [ValidateNotNullOrEmpty()]
@@ -55,7 +56,14 @@ function Test-Function {
     process{
         $ScriptblockAst.FindAll( $FunctionPredicate, $true) | ForEach-Object {
             $length = 0
+            $paramBlockLength = 0
             $functionBody = $_.Body
+
+            if($null -ne $functionBody.ParamBlock)
+            {
+                $paramBlockLength = $functionBody.ParamBlock.Extent.EndLineNumber - $functionBody.ParamBlock.Extent.StartLineNumber
+            }
+
             if($null -ne $functionBody.BeginBlock){
                 $length += ($functionBody.BeginBlock.Extent.EndLineNumber - $functionBody.BeginBlock.Extent.StartLineNumber)
             }
@@ -67,6 +75,8 @@ function Test-Function {
                 $length += ($functionBody.EndBlock.Extent.EndLineNumber - $functionBody.EndBlock.Extent.StartLineNumber)
             }
 
+            $length = $length - $paramBlockLength
+
             if($length -gt $MaxFunctionContentLength)
             {
                 [int]$startLineNumber =  $functionBody.Extent.StartLineNumber
@@ -75,11 +85,10 @@ function Test-Function {
                 [int]$endColumnNumber = $functionBody.Extent.EndColumnNumber
                 [string]$correction = "Function content is too long. Refactor your code."
                 [string]$optionalDescription = 'One of the clean code principles is that function sould be short and concise.'
-                $objParams = @{
-                    TypeName = 'Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.CorrectionExtent'
-                    ArgumentList = $startLineNumber, $endLineNumber, $startColumnNumber,
-                                $endColumnNumber, $correction, $optionalDescription
-                }
+                $objParams = @{}
+                $objParams.Add("TypeName", 'Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.CorrectionExtent')
+                $objParams.Add("ArgumentList", @($startLineNumber, $endLineNumber, $startColumnNumber,$endColumnNumber, $correction, $optionalDescription))
+
                 $correctionExtent = New-Object @objParams
                 $suggestedCorrections = New-Object System.Collections.ObjectModel.Collection[$($objParams.TypeName)]
                 $suggestedCorrections.add($correctionExtent) | Out-Null

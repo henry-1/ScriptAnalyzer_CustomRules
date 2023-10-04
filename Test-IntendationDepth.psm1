@@ -16,6 +16,7 @@
     #>
     [cmdletbinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Test-Function', '', Justification = 'Required by PSScriptAnalyzer', Scope = 'function')]
     param (
         [parameter( Mandatory )]
         [ValidateNotNullOrEmpty()]
@@ -57,6 +58,13 @@
             }
             return $ReturnValue
         }
+
+
+
+        $allLines = $ScriptblockAst.Extent.Text.Split("`n")
+        $allAsts = $ScriptblockAst.FindAll($AllAstsPredicate,$true)
+    }
+    process{
 
         function Get-PSScriptAnalyzerError
         {
@@ -113,10 +121,7 @@
             }
         }
 
-        $allLines = $ScriptblockAst.Extent.Text.Split("`n")
-        $allAsts = $ScriptblockAst.FindAll($AllAstsPredicate,$true)
-    }
-    process{
+
         $asts = $ScriptblockAst.FindAll($ScriptBlockPredicate,$true) |
             Where-Object {$null -ne $_.ParamBlock} |
             Select-Object -First 1
@@ -126,7 +131,8 @@
             $start = 0
             $tokens = [Management.Automation.PSParser]::Tokenize($ast, [ref]$null)
             foreach($token in $tokens) {
-                if($token.Type -eq "GroupStart" -and $token.Content.Contains("{")) {
+                if($token.Type -eq "GroupStart" -and $token.Content.Contains("{"))
+                {
                     $intendationDepth++
                     if($intendationDepth -gt $maxIntendationDepth) {
                         $maxIntendationDepth = $intendationDepth
@@ -139,8 +145,8 @@
                 }
                 if ($token.Type -eq "GroupEnd" -and $token.Content.Equals("}")) {
                     $intendationDepth--
-                    if($intendationDepth -lt $MaxAllowedIntendation -and $maxDepthReached) {
-
+                    if($intendationDepth -lt $MaxAllowedIntendation -and $maxDepthReached)
+                    {
                         [System.Management.Automation.Language.Ast]$codeBlock = $allAsts | Where-Object {$_.Extent.StartLineNumber -eq $start } | Select-Object -First 1
 
                         if($null -eq $codeBlock -and $allLines[$start].ToString().Trim().EndsWith("{")) {
@@ -148,16 +154,16 @@
                         }
 
                         if($null -ne $codeBlock) {
-                            $params = @{
-                                StartLine = $codeBlock.Extent.StartLineNumber
-                                EndLine = $codeBlock.Extent.EndLineNumber
-                                StartColumn = $codeBlock.Extent.StartColumnNumber
-                                EndColumn = $codeBlock.Extent.EndColumnNumber
-                                Correction = "Refactor code to reduce intendation."
-                                OptionalDescription = "Code intendation should not exceed $MaxAllowedIntendation."
-                                Message = "Maximum intendation exceeded in code. Please reduce intendation by refactoring code."
-                                Extent = $codeBlock.Extent
-                            }
+                            $params = @{}
+                            $params.Add("StartLine", $codeBlock.Extent.StartLineNumber)
+                            $params.Add("EndLine", $codeBlock.Extent.EndLineNumber)
+                            $params.Add("StartColumn", $codeBlock.Extent.StartColumnNumber)
+                            $params.Add("EndColumn", $codeBlock.Extent.EndColumnNumber)
+                            $params.Add("Correction",  "Refactor code to reduce intendation.")
+                            $params.Add("OptionalDescription", "Code intendation should not exceed $MaxAllowedIntendation.")
+                            $params.Add("Message", "Maximum intendation exceeded in code. Please reduce intendation by refactoring code.")
+                            $params.Add("Extent", $codeBlock.Extent)
+
                             Get-PSScriptAnalyzerError @params
                         }
 
