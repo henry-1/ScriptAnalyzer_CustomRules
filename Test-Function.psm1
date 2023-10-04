@@ -6,6 +6,7 @@ function Test-Function {
         .DESCRIPTION
             One of the clean code principles is that function should not be too long.
             The test counts only lines of code in 'begin', 'process' and 'end' parts of functions in a script.
+            The test excludes lines of comments from counting.
         .PARAMETER ScriptblockAst
             AST of the script to be examined.
         .INPUTS
@@ -27,6 +28,38 @@ function Test-Function {
     )
 
     begin{
+
+        function Get-CommentLineCount{
+            <#
+                .SYNOPSIS
+                    Get comment line count
+                .PARAMETER Ast
+                    Text from an AST from script code
+                .EXAMPLE
+                    Get-CommentLineCount -Text $functionBody.BeginBlock.Extent.Text
+                .LINK
+                    https://www.powershellgallery.com/packages/ISEScriptingGeek/3.3.1.2/Content/Get-ScriptComments.ps1
+            #>
+            [cmdletbinding()]
+            [OutputType([int])]
+            param(
+                [string]$Text
+            )
+            New-Variable -Force -Name astTokens -Value $null
+            New-Variable -Force -Name astErr -Value $null
+            New-Variable -Force -Name returnValue -Value 0
+
+            [System.Management.Automation.Language.Parser]::ParseInput($Text, [ref]$astTokens, [ref]$astErr) | Out-Null
+            $astTokens.where({$_.kind -eq 'comment'}) | ForEach-Object{
+                $returnValue += ($_.Extent.EndLineNumber - $_.Extent.StartLineNumber)
+                if($_.Extent.EndLineNumber -eq $_.Extent.StartLineNumber)
+                {
+                    $returnValue += 1
+                }
+            }
+
+            $returnValue
+        }
 
         # Find function block
         [ScriptBlock]$FunctionPredicate = {
@@ -54,6 +87,9 @@ function Test-Function {
     }
 
     process{
+
+
+
         $ScriptblockAst.FindAll( $FunctionPredicate, $true) | ForEach-Object {
             $length = 0
             $paramBlockLength = 0
@@ -61,18 +97,23 @@ function Test-Function {
 
             if($null -ne $functionBody.ParamBlock)
             {
+
                 $paramBlockLength = $functionBody.ParamBlock.Extent.EndLineNumber - $functionBody.ParamBlock.Extent.StartLineNumber
             }
 
             if($null -ne $functionBody.BeginBlock){
-                $length += ($functionBody.BeginBlock.Extent.EndLineNumber - $functionBody.BeginBlock.Extent.StartLineNumber)
+                $commentLineCount = Get-CommentLineCount -Text $functionBody.BeginBlock.Extent.Text
+                $length += ($functionBody.BeginBlock.Extent.EndLineNumber - $functionBody.BeginBlock.Extent.StartLineNumber - $commentLineCount)
+
             }
 
             if($null -ne $functionBody.ProcessBlock){
-                $length += ($functionBody.ProcessBlock.Extent.EndLineNumber - $functionBody.ProcessBlock.Extent.StartLineNumber)
+                $commentLineCount = Get-CommentLineCount -Text $functionBody.ProcessBlock.Extent.Text
+                $length += ($functionBody.ProcessBlock.Extent.EndLineNumber - $functionBody.ProcessBlock.Extent.StartLineNumber - $commentLineCount)
             }
             if($null -ne $functionBody.EndBlock){
-                $length += ($functionBody.EndBlock.Extent.EndLineNumber - $functionBody.EndBlock.Extent.StartLineNumber)
+                $commentLineCount = Get-CommentLineCount -Text $functionBody.EndBlock.Extent.Text
+                $length += ($functionBody.EndBlock.Extent.EndLineNumber - $functionBody.EndBlock.Extent.StartLineNumber - $commentLineCount)
             }
 
             $length = $length - $paramBlockLength
