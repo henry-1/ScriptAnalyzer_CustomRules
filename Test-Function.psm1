@@ -6,7 +6,7 @@ function Test-Function {
         .DESCRIPTION
             One of the clean code principles is that function should not be too long.
             The test counts only lines of code in 'begin', 'process' and 'end' parts of functions in a script.
-            The test excludes lines of comments from counting.
+            The test excludes lines of comments and empty lines from counting.
         .PARAMETER ScriptblockAst
             AST of the script to be examined.
         .INPUTS
@@ -29,11 +29,34 @@ function Test-Function {
 
     begin{
 
-        function Get-CommentLineCount{
+        function Get-EmptyLineCount {
+
+            [cmdletbinding()]
+            [OutputType([int])]
+            param(
+                [Parameter(Mandatory)]
+                [string]$Text
+            )
+            New-Variable -Force -Name astTokens -Value $null
+            New-Variable -Force -Name astErr -Value $null
+            New-Variable -Force -Name returnValue -Value 0
+
+            [System.Management.Automation.Language.Parser]::ParseInput($Text, [ref]$astTokens, [ref]$astErr) | Out-Null
+            for($i = 0; $i -lt $astTokens.count; $i++)
+            {
+                if($astTokens[$i].kind -eq 'NewLine' -and $astTokens[$i + 1].kind -eq 'NewLine') {
+                    $returnValue += 1
+                    $i++
+                }
+            }
+            $returnValue
+        }
+
+        function Get-CommentLineCount {
             <#
                 .SYNOPSIS
                     Get comment line count
-                .PARAMETER Ast
+                .PARAMETER Text
                     Text from an AST from script code
                 .EXAMPLE
                     Get-CommentLineCount -Text $functionBody.BeginBlock.Extent.Text
@@ -43,6 +66,7 @@ function Test-Function {
             [cmdletbinding()]
             [OutputType([int])]
             param(
+                [Parameter(Mandatory)]
                 [string]$Text
             )
             New-Variable -Force -Name astTokens -Value $null
@@ -95,28 +119,28 @@ function Test-Function {
             $paramBlockLength = 0
             $functionBody = $_.Body
 
+            $codeBlocks = @("BeginBlock","ProcessBlock","EndBlock")
+
             if($null -ne $functionBody.ParamBlock)
             {
-
                 $paramBlockLength = $functionBody.ParamBlock.Extent.EndLineNumber - $functionBody.ParamBlock.Extent.StartLineNumber
             }
 
-            if($null -ne $functionBody.BeginBlock){
-                $commentLineCount = Get-CommentLineCount -Text $functionBody.BeginBlock.Extent.Text
-                $length += ($functionBody.BeginBlock.Extent.EndLineNumber - $functionBody.BeginBlock.Extent.StartLineNumber - $commentLineCount)
-
+            foreach($codeBlock in $codeBlocks)
+            {
+                if($null -ne $functionBody.$codeBlock){
+                    $commentLineCount = Get-CommentLineCount -Text $functionBody.$codeBlock.Extent.Text
+                    $emptyLineCount = Get-EmptyLineCount -Text $functionBody.$codeBlock.Extent.Text
+                    $codeLineCount = $functionBody.$codeBlock.Extent.EndLineNumber - $functionBody.$codeBlock.Extent.StartLineNumber - 1
+                    $length += ($codeLineCount - $commentLineCount - $emptyLineCount)
+                }
             }
 
-            if($null -ne $functionBody.ProcessBlock){
-                $commentLineCount = Get-CommentLineCount -Text $functionBody.ProcessBlock.Extent.Text
-                $length += ($functionBody.ProcessBlock.Extent.EndLineNumber - $functionBody.ProcessBlock.Extent.StartLineNumber - $commentLineCount)
-            }
-            if($null -ne $functionBody.EndBlock){
-                $commentLineCount = Get-CommentLineCount -Text $functionBody.EndBlock.Extent.Text
-                $length += ($functionBody.EndBlock.Extent.EndLineNumber - $functionBody.EndBlock.Extent.StartLineNumber - $commentLineCount)
+            if($functionBody.EndBlock.Extent.StartLineNumber -eq $functionBody.ParamBlock.Extent.StartLineNumber) {
+                $length = $length - $paramBlockLength
             }
 
-            $length = $length - $paramBlockLength
+            Write-Verbose ("Found Function {0} with {1} lines of code" -f $_.Name, $length)
 
             if($length -gt $MaxFunctionContentLength)
             {
