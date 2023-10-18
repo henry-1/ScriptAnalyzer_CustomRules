@@ -143,7 +143,6 @@ function Test-CyclomaticComplexity
                     Get-PSScriptAnalyzerError @params
                 }
             }
-
     }
 }
 
