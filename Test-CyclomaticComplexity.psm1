@@ -122,14 +122,21 @@ function Test-CyclomaticComplexity
                 $functionText = $_.Extent.text
                 New-Variable -Force -Name astTokens -Value $null
                 New-Variable -Force -Name astErr -Value $null
-                New-Variable -Force -Name returnValue -Value 0
+                New-Variable -Force -Name tokenCount -Value 0
 
                 [System.Management.Automation.Language.Parser]::ParseInput($functionText, [ref]$astTokens, [ref]$astErr) | Out-Null
-                $ifTokens = $astTokens | Where-Object {$_.Kind -eq "If"}
-                $whileTokens = $astTokens | Where-Object {$_.Kind -eq "While"}
-                $caseTokens = $astTokens | Where-Object {$_.Kind -eq "Identifier" -and $_.Text -eq "Case"}
+                # tokens with branches
+                $tokenCount += ($astTokens | Where-Object {$_.Kind -eq "If"}).Count
+                $tokenCount += ($astTokens | Where-Object {$_.Kind -eq "Identifier" -and $_.Text -eq "Case"}).Count
 
-                if(($ifTokens.Count + $whileTokens.Count + $caseTokens.Count) -gt $CCThreshold)
+                # tokens with loops
+                $tokenCount += ($astTokens | Where-Object {$_.Kind -eq "While"}).Count
+                $tokenCount += ($astTokens | Where-Object {$_.Kind -eq "For"}).Count
+                $tokenCount += ($astTokens | Where-Object {$_.Kind -eq "ForEach"}).Count
+                $tokenCount += ($astTokens | Where-Object {$_.Kind -eq "Generic" -and $_.Text -eq "Foreach-Object"}).Count
+
+
+                if($tokenCount -gt $CCThreshold)
                 {
                     $params = @{
                         FunctionAst = $_
