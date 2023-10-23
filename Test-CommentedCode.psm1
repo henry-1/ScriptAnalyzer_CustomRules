@@ -117,13 +117,27 @@ function Test-CommentedCode
             [System.Management.Automation.Language.Parser]::ParseInput($functionText, [ref]$astTokens, [ref]$astErr) | Out-Null
 
             $commentTokens = $astTokens | Where-Object { $_.Kind -eq "Comment"}
+            foreach($token in $commentTokens)
+            {
+                $comment = [string]::Empty
 
-            $commentTokens | Where-Object {$_.Text.StartsWith("#")} | ForEach-Object {
-                $comment = $_.Text.Substring(1, $_.Text.Length - 1).Trim()
+                if($token.Text.StartsWith("#"))
+                {
+                    $comment = $token.Text.Substring(1, $token.Text.Length - 1).Trim()
+                }
+                if($token.Text.StartsWith("<#") -and $token.Text -inotlike "*.SYNOPSIS*")
+                {
+                    $comment = $token.Text.Substring(2, $token.Text.Length - 4).Trim()
+                }
+                if([string]::IsNullOrEmpty($comment))
+                {
+                    continue
+                }
+
                 try{
                     $sut = [scriptblock]::Create($comment)
                     $params = @{
-                        Extent = $_.Extent
+                        Extent = $token.Extent
                         Description = "Your comment -> $sut <- is code."
                         Correction = "Please remove the code which was commented out."
                         Message = "Your comment -> $sut <- is code. Please remove the code which was commented out from script."
