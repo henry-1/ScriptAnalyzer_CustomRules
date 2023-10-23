@@ -152,6 +152,8 @@
             process{
                 $commandName = $ast.CommandElements[0].Value
                 $verb, $noun, $rest = $commandName -split '-'
+                $verbParts = $verb -split '\\'
+                $verb = $verbParts[$verbParts.Count - 1]
                 # Test approved verbs
                 if ((-not [string]::IsNullOrEmpty($verb)) -and (-not $standardVerbs.$verb))
                 {
@@ -166,6 +168,9 @@
 
                     Get-PSScriptAnalyzerError @params
                 }
+
+                $commandNameParts = $verb -split '\\'
+                $commandName = $commandNameParts[$commandNameParts.Count - 1]
 
                 # Test invalid command characters
                 if (-not [string]::IsNullOrEmpty($commandName) -and $commandName.IndexOfAny("#,(){}[]&/\`$^;:`"'<>|?@``*%+=~ ".ToCharArray()) -ne -1)
