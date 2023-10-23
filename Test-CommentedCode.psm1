@@ -29,8 +29,8 @@ function Test-CommentedCode
             <#
                 .SYNOPSIS
                     Get-PSScriptAnalyzerError
-                .PARAMETER CommandAst
-                    Powershell AST
+                .PARAMETER Extent
+                    Powershell IScriptExtent
                 .PARAMETER Description
                     Description of the finding
                 .PARAMETER Correction
@@ -89,7 +89,7 @@ function Test-CommentedCode
             }
         }
 
-        # Find ScriptBlocks
+        # Get ScriptBlocks
         [ScriptBlock]$FunctionPredicate = {
             param
             (
@@ -103,8 +103,6 @@ function Test-CommentedCode
             }
             return $ReturnValue
         }
-
-
     }
 
     process{
@@ -121,10 +119,6 @@ function Test-CommentedCode
             {
                 $comment = [string]::Empty
 
-                if($token.Text.StartsWith("#"))
-                {
-                    $comment = $token.Text.Substring(1, $token.Text.Length - 1).Trim()
-                }
                 if($token.Text.StartsWith("<#") -and $token.Text -inotlike "*.SYNOPSIS*")
                 {
                     $comment = $token.Text.Substring(2, $token.Text.Length - 4).Trim()
@@ -139,7 +133,7 @@ function Test-CommentedCode
                     $params = @{
                         Extent = $token.Extent
                         Description = "Your comment -> $sut <- is code."
-                        Correction = "Please remove the code which was commented out."
+                        Correction = "Unused Code detected. Please remove the code which was commented out."
                         Message = "Your comment -> $sut <- is code. Please remove the code which was commented out from script."
                         RuleName = "Test-CommentedCode"
                         Severity = "Warning"
@@ -148,7 +142,7 @@ function Test-CommentedCode
                     Get-PSScriptAnalyzerError @params
                 }
                 catch{
-                    # do nothing, $comment is no code
+                    Write-Verbose "Comment is not code"
                 }
             }
         }

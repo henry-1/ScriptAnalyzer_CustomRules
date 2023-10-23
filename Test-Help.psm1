@@ -259,12 +259,21 @@ function Test-Help
                 $missingParameters = Compare-Object -ReferenceObject $helpParameters -DifferenceObject $parameterBlockParameters
                 foreach($missingParameter in $missingParameters)
                 {
-                    $errorProperty = Get-ErrorProperty -Missing $missingParameter -ScriptAst $currentAst
-                    if($UseSonarQube) {
+                    $errorProperty = $null
+                    if($currentAst -is [System.Management.Automation.Language.ScriptBlockAst])
+                    {
+                        $errorProperty = Get-ErrorProperty -Missing $missingParameter -ScriptAst $currentAst
+                    }
+                    if($currentAst -is [System.Management.Automation.Language.FunctionDefinitionAst])
+                    {
                         $errorProperty = Get-ErrorProperty -Missing $missingParameter -FunctionAst $currentAst
                     }
 
-                    Get-PSScriptAnalyzerError -ErrorProperty $errorProperty
+                    #if($UseSonarQube) {}
+                    if($null -ne $errorProperty)
+                    {
+                        Get-PSScriptAnalyzerError -ErrorProperty $errorProperty
+                    }
                 }
 
                 #endregion function parameter and parameter documentation mismatch

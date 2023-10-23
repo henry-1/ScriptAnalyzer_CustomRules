@@ -30,6 +30,16 @@ function Test-Function {
     begin{
 
         function Get-EmptyLineCount {
+            <#
+                .SYNOPSIS
+                    Count empty lines in code
+                .PARAMETER Text
+                    Code as text
+                .EXAMPLE
+                    Get-EmptyLineCount -Text $functionBody.$codeBlock.Extent.Text
+                .LINK
+                    https://de.wikipedia.org/wiki/Clean_Code
+            #>
 
             [cmdletbinding()]
             [OutputType([int])]

@@ -38,7 +38,7 @@ function Test-CyclomaticComplexity
             <#
                 .SYNOPSIS
                     Get-PSScriptAnalyzerError
-                .PARAMETER CommandAst
+                .PARAMETER FunctionAst
                     Powershell AST
                 .PARAMETER Description
                     Description of the finding
