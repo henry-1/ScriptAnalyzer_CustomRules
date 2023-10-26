@@ -33,6 +33,8 @@ function Test-Function {
             <#
                 .SYNOPSIS
                     Count empty lines in code
+                .DESCRIPTION
+                    Count empty lines in an AST
                 .PARAMETER Text
                     Code as text
                 .EXAMPLE
@@ -66,6 +68,8 @@ function Test-Function {
             <#
                 .SYNOPSIS
                     Get comment line count
+                .DESCRIPTION
+                    Count lines of comments in an AST
                 .PARAMETER Text
                     Text from an AST from script code
                 .EXAMPLE

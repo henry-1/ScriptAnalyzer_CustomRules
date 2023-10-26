@@ -2,6 +2,8 @@
     <#
         .SYNOPSIS
             Test if command adheres naming conventions
+        .DESCRIPTION
+            Commands should follow verb-noun convention.
         .PARAMETER ast
             Command AST
         .EXAMPLE
@@ -103,7 +105,9 @@ function Test-CommandNamingConvention {
         {
             <#
                 .SYNOPSIS
-                    Get-PSScriptAnalyzerError
+                    Create DiagnosticRecord
+                .DESCRIPTION
+                    Create an output that PSScriptAnalyzer expects as finding.
                 .PARAMETER CommandAst
                     Powershell AST
                 .PARAMETER Description

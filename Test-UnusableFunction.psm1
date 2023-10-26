@@ -31,6 +31,8 @@ function Test-UnusableFunction {
             <#
                 .SYNOPSIS
                     Create DiagnosticRecord
+                .DESCRIPTION
+                    Create an output that PSScriptAnalyzer expects as finding.
                 .PARAMETER StartLine
                     StartLine of the finding
                 .PARAMETER EndLine

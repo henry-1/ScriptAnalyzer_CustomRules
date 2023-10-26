@@ -34,6 +34,8 @@ function Get-ErrorProperty
     <#
         .SYNOPSIS
             Prepare Hashtable for parameters of DiagnosticRecord
+        .DESCRIPTION
+            Create a Hashtable with information that can be used to create a PSScriptAnalyzer DiagnosticRecord.
         .PARAMETER RuleName
             Name of the rule rasing this finding.
         .PARAMETER Missing
@@ -97,7 +99,9 @@ function Get-PSScriptAnalyzerError
 {
     <#
         .SYNOPSIS
-            Create DiagnosticRecord for a finding
+            Create DiagnosticRecord
+        .DESCRIPTION
+            Create an output that PSScriptAnalyzer expects as finding.
         .PARAMETER ErrorProperty
             Hashtable for parameters for DiagnosticRecord
         .LINK
@@ -626,4 +630,71 @@ function Test-ConciseSynopsis
 }
 
 
-Export-ModuleMember -Function ("Test-Synopsis", "Test-ParameterDescription", "Test-ParameterDocumentation", "Test-SynopsisEqualsDescription", "Test-SynopsisMissesLink", "Test-ConciseSynopsis")
+function Test-MissingDescription
+{
+    <#
+    .SYNOPSIS
+        Synopsis should have a Description node.
+    .DESCRIPTION
+        Description is an optinal part of Synopsis
+        but when working with Sonarqube plugin Description is required.
+    .PARAMETER ScriptBlockAst
+        ScriptBlockAst to analyze
+    .INPUTS
+        [System.Management.Automation.Language.ScriptBlockAst]
+    .OUTPUTS
+        [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]]
+    .EXAMPLE
+        Test-MissingDescription -ScriptBlockAst $ScriptBlockAst
+    .LINK
+        https://learn.microsoft.com/en-us/powershell/scripting/developer/help/writing-comment-based-help-topics?view=powershell-7.3
+    .LINK
+        https://github.com/gretard/sonar-ps-plugin
+    #>
+    [CmdletBinding()]
+    [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Test-Function', '', Justification = 'Required by PSScriptAnalyzer', Scope = 'function')]
+    Param
+    (
+        [Parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [System.Management.Automation.Language.ScriptBlockAst]
+        $ScriptBlockAst
+    )
+
+    try
+    {
+        [System.Management.Automation.Language.FunctionDefinitionAst[]]$asts = $null
+
+        [System.Management.Automation.Language.FunctionDefinitionAst[]]$asts = $ScriptBlockAst.FindAll($FunctionPredicate, $true) |
+            Where-Object {$null -ne $_.Body.ParamBlock -and $null -ne $_.Body.ParamBlock.Parameters}
+
+        foreach($currentAst in $asts)
+        {
+            $helpContent = $currentAst.GetHelpContent()
+
+            # violation if there is no help at all
+            if($null -eq ($helpContent | Select-Object -ExpandProperty Description)) {
+                $params = @{
+                    ScriptAst = $currentAst
+                    Description = ".SYNOPSIS should contain .DESCRIPTION."
+                    Correction = "Use .DESCRIPTION to explain what your function does in more detail."
+                    Message = "Missing .DESCRIPTION. Please add .DESCRIPTION to .SYNOPSIS."
+                    RuleName = "Test-MissingDescription"
+                    Severity = "Warning"
+                    RuleSuppressionID = "Test-MissingDescription"
+                }
+                Get-PSScriptAnalyzerError -ErrorProperty $params | Write-Output
+
+                continue
+            }
+        }
+    }
+    catch
+    {
+        $PSCmdlet.ThrowTerminatingError($PSItem)
+    }
+
+}
+
+Export-ModuleMember -Function ("Test-Synopsis", "Test-ParameterDescription", "Test-ParameterDocumentation", "Test-SynopsisEqualsDescription", "Test-SynopsisMissesLink", "Test-ConciseSynopsis", "Test-MissingDescription")

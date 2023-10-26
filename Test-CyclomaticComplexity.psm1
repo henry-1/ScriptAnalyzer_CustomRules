@@ -37,7 +37,9 @@ function Test-CyclomaticComplexity
         {
             <#
                 .SYNOPSIS
-                    Get-PSScriptAnalyzerError
+                    Create DiagnosticRecord
+                .DESCRIPTION
+                    Create an output that PSScriptAnalyzer expects as finding.
                 .PARAMETER FunctionAst
                     Powershell AST
                 .PARAMETER Description

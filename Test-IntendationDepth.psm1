@@ -71,6 +71,8 @@
             <#
                 .SYNOPSIS
                     Create DiagnosticRecord
+                .DESCRIPTION
+                    Create an output that PSScriptAnalyzer expects as finding.
                 .PARAMETER StartLine
                     StartLine of the finding
                 .PARAMETER EndLine
@@ -137,7 +139,7 @@
                     if($intendationDepth -gt $maxIntendationDepth) {
                         $maxIntendationDepth = $intendationDepth
                     }
-                    if($maxIntendationDepth -ge $MaxAllowedIntendation -and -not $maxDepthReached) {
+                    if($maxIntendationDepth -gt $MaxAllowedIntendation -and -not $maxDepthReached) {
                         $start = $token.StartLine
                         $maxDepthReached = $true
                         Write-Verbose "MaxAllowedIntendation reached at line $($token.StartLine)"
@@ -145,7 +147,7 @@
                 }
                 if ($token.Type -eq "GroupEnd" -and $token.Content.Equals("}")) {
                     $intendationDepth--
-                    if($intendationDepth -lt $MaxAllowedIntendation -and $maxDepthReached)
+                    if($intendationDepth -le $MaxAllowedIntendation -and $maxDepthReached)
                     {
                         [System.Management.Automation.Language.Ast]$codeBlock = $allAsts | Where-Object {$_.Extent.StartLineNumber -eq $start } | Select-Object -First 1
 
