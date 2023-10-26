@@ -105,6 +105,10 @@ function Test-CommentedCode
         [System.Management.Automation.Language.ScriptblockAst]$ScriptblockAst
     )
 
+    $scriptBlockTokens =  $null
+    [System.Management.Automation.Language.Parser]::ParseInput($ScriptblockAst.Extent.Text, [ref]$scriptBlockTokens, [ref]$null) | Out-Null
+
+
     $ScriptBlockAst.FindAll($FunctionPredicate, $true) | ForEach-Object {
         $functionText = $_.Extent.text
         $astTokens = $astErr =  $null
@@ -141,8 +145,9 @@ function Test-CommentedCode
             $isCommentedCode = $isCommentedCode -or ($null -ne ($ast.FindAll({ $true }, $true) | Where-Object {$null -ne $_.Expression}))
 
             if($isCommentedCode){
+                $findingToken = $scriptBlockTokens | Where-Object {$_.Kind -eq "Comment" -and $_.Text -eq $token.Text}
                 $params = @{
-                    Extent = $token.Extent
+                    Extent = $findingToken.Extent
                     Description = "Your comment -> $comment <- contains code."
                     Correction = "Unused Code detected. Please remove the code which was commented out."
                     Message = "Your comment -> $comment <- contains code. Please remove the code which was commented out from script."
