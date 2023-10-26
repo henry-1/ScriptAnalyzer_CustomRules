@@ -1,4 +1,79 @@
-﻿function Test-CommandNamingConvention {
+﻿function Test-CommandAst{
+    <#
+        .SYNOPSIS
+            Test if command adheres naming conventions
+        .PARAMETER ast
+            Command AST
+        .EXAMPLE
+            Test-CommandAst -Ast $ast
+        .OUTPUTS
+            [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]]
+        .LINK
+            https://learn.microsoft.com/en-us/powershell/scripting/developer/cmdlet/approved-verbs-for-windows-powershell-commands?view=powershell-7.3
+    #>
+    param(
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        [System.Management.Automation.Language.CommandAst]
+        $Ast
+    )
+
+    process{
+        $commandName = $ast.CommandElements[0].Value
+        $verb, $noun, $rest = $commandName -split '-'
+        $verbParts = $verb -split '\\'
+        $verb = $verbParts[$verbParts.Count - 1]
+        # Test approved verbs
+        if ((-not [string]::IsNullOrEmpty($verb)) -and (-not $standardVerbs.$verb))
+        {
+            $params =@{}
+            $params.Add("CommandAst", $ast)
+            $params.Add("Description", "$commandName uses a non-standard verb, $Verb.")
+            $params.Add("Correction", "Please change it. Use Get-Verb to see all approved verbs")
+            $params.Add("Message", "Usage of non-approved verb.")
+            $params.Add("RuleName", "Test-CommandNamingConvention")
+            $params.Add("Severity", "Warning")
+            $params.Add("RuleSuppressionID", "Test-CommandNamingConvention")
+
+            Get-PSScriptAnalyzerError @params
+        }
+
+        $commandNameParts = $verb -split '\\'
+        $commandName = $commandNameParts[$commandNameParts.Count - 1]
+
+        # Test invalid command characters
+        if (-not [string]::IsNullOrEmpty($commandName) -and $commandName.IndexOfAny("#,(){}[]&/\`$^;:`"'<>|?@``*%+=~ ".ToCharArray()) -ne -1)
+        {
+            $params = @{}
+            $params.Add("CommandAst", $ast)
+            $params.Add("Description", "$commandName uses invalid characters.")
+            $params.Add("Correction", "Please rename $CommandName.")
+            $params.Add("Message", "Usage of invalid characters in command.")
+            $params.Add("RuleName", "Test-CommandNamingConvention")
+            $params.Add("Severity", "Warning")
+            $params.Add("RuleSuppressionID", "Test-CommandNamingConvention")
+
+            Get-PSScriptAnalyzerError @params
+        }
+
+        # Test if command contains more parts than verb and noun
+        if ($rest) {
+            $params = New-Object -TypeName pscustomobject
+            $params = @{}
+            $params.Add("CommandAst", $ast)
+            $params.Add("Description", "$commandName contains more parts than verb and noun." )
+            $params.Add("Correction", "Please rename $CommandName.")
+            $params.Add("Message",  "Command contains more parts than verb and noun.")
+            $params.Add("RuleName", "Test-CommandNamingConvention")
+            $params.Add("Severity", "Warning")
+            $params.Add("RuleSuppressionID", "Test-CommandNamingConvention")
+
+            Get-PSScriptAnalyzerError @params
+        }
+    }
+
+}
+
+function Test-CommandNamingConvention {
     <#
         .SYNOPSIS
             Test Powershell scripts that they adhere to naming conventions.
@@ -130,80 +205,7 @@
 
     process{
 
-        function Test-CommandAst{
-            <#
-                .SYNOPSIS
-                    Test if command adheres naming conventions
-                .PARAMETER ast
-                    Command AST
-                .EXAMPLE
-                    Test-CommandAst -Ast $ast
-                .OUTPUTS
-                    [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]]
-                .LINK
-                    https://learn.microsoft.com/en-us/powershell/scripting/developer/cmdlet/approved-verbs-for-windows-powershell-commands?view=powershell-7.3
-            #>
-            param(
-                [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-                [System.Management.Automation.Language.CommandAst]
-                $Ast
-            )
 
-            process{
-                $commandName = $ast.CommandElements[0].Value
-                $verb, $noun, $rest = $commandName -split '-'
-                $verbParts = $verb -split '\\'
-                $verb = $verbParts[$verbParts.Count - 1]
-                # Test approved verbs
-                if ((-not [string]::IsNullOrEmpty($verb)) -and (-not $standardVerbs.$verb))
-                {
-                    $params =@{}
-                    $params.Add("CommandAst", $ast)
-                    $params.Add("Description", "$commandName uses a non-standard verb, $Verb.")
-                    $params.Add("Correction", "Please change it. Use Get-Verb to see all approved verbs")
-                    $params.Add("Message", "Usage of non-approved verb.")
-                    $params.Add("RuleName", "Test-CommandNamingConvention")
-                    $params.Add("Severity", "Warning")
-                    $params.Add("RuleSuppressionID", "Test-CommandNamingConvention")
-
-                    Get-PSScriptAnalyzerError @params
-                }
-
-                $commandNameParts = $verb -split '\\'
-                $commandName = $commandNameParts[$commandNameParts.Count - 1]
-
-                # Test invalid command characters
-                if (-not [string]::IsNullOrEmpty($commandName) -and $commandName.IndexOfAny("#,(){}[]&/\`$^;:`"'<>|?@``*%+=~ ".ToCharArray()) -ne -1)
-                {
-                    $params = @{}
-                    $params.Add("CommandAst", $ast)
-                    $params.Add("Description", "$commandName uses invalid characters.")
-                    $params.Add("Correction", "Please rename $CommandName.")
-                    $params.Add("Message", "Usage of invalid characters in command.")
-                    $params.Add("RuleName", "Test-CommandNamingConvention")
-                    $params.Add("Severity", "Warning")
-                    $params.Add("RuleSuppressionID", "Test-CommandNamingConvention")
-
-                    Get-PSScriptAnalyzerError @params
-                }
-
-                # Test if command contains more parts than verb and noun
-                if ($rest) {
-                    $params = New-Object -TypeName pscustomobject
-                    $params = @{}
-                    $params.Add("CommandAst", $ast)
-                    $params.Add("Description", "$commandName contains more parts than verb and noun." )
-                    $params.Add("Correction", "Please rename $CommandName.")
-                    $params.Add("Message",  "Command contains more parts than verb and noun.")
-                    $params.Add("RuleName", "Test-CommandNamingConvention")
-                    $params.Add("Severity", "Warning")
-                    $params.Add("RuleSuppressionID", "Test-CommandNamingConvention")
-
-                    Get-PSScriptAnalyzerError @params
-                }
-            }
-
-        }
 
         $commandAsts = $ScriptblockAst.FindAll( $CommandPredicate, $true)
         try{

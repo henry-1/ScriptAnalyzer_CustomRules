@@ -220,6 +220,8 @@ function Test-ParameterDescription
     <#
     .SYNOPSIS
         Test that every parameter documentation has no descriptive explanation.
+    .DESCRIPTION
+        The rule checks for undocumented parameters and documented parameters which doesn't exist.
     .PARAMETER ScriptBlockAst
         ScriptBlockAst to analyze
     .INPUTS
