@@ -111,7 +111,7 @@ To be able to run the scan you need to download SonarScanner
 https://docs.sonarsource.com/sonarqube/9.9/analyzing-source-code/scanners/sonarscanner/
 
 1. Create a project for your Powershell scripts in SonarQube
-2. In your user profile choose Security and create a 'Project Analalysis Token'
+2. In your user profile choose Security and create a 'Project Analysis Token'
 3. In your script folder create a 'sonar-project.properties' file
 4. Add at least the values for the options as described here: https://docs.sonarsource.com/sonarqube/9.9/analyzing-source-code/analysis-parameters/
 
