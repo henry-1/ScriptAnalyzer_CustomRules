@@ -115,7 +115,7 @@ https://docs.sonarsource.com/sonarqube/9.9/analyzing-source-code/scanners/sonars
 3. In your script folder create a 'sonar-project.properties' file
 4. Add at least the values for the options as described here: https://docs.sonarsource.com/sonarqube/9.9/analyzing-source-code/analysis-parameters/
 
-- sonar.organization -> nam of the org
+- sonar.organization -> name of the org
 - sonar.host.url -> URI to your SonarQube instance
 - sonar.projectKey -> needs to be the name you gave the token in SonarQube
 - sonar.token -> the token you created
