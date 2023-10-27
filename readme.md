@@ -92,7 +92,7 @@ To integrate custom modules with the Sonar PS Plugin you need to compile the cod
 ```powershell
 $powershellRules = Get-ScriptAnalyzerRule
 ```
-2. Right after that line add the following line to add custom rules to the rules collection recognized by the plugin
+2. (optional) Right after that line add the following line to add custom rules to the rules collection recognized by the plugin
 ```powershell
 $powershellRules += Get-ScriptAnalyzerRule -CustomRulePath "C:\DEV\CustomRules\*.psm1"
 ```
