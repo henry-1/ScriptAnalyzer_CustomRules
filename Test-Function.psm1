@@ -142,10 +142,18 @@ function Test-Function {
 
             foreach($codeBlock in $codeBlocks)
             {
+                $commentLineCount = 0
+                $emptyLineCount = 0
+                $codeLineCount = 1
+
                 if($null -ne $functionBody.$codeBlock){
-                    $commentLineCount = Get-CommentLineCount -Text $functionBody.$codeBlock.Extent.Text
-                    $emptyLineCount = Get-EmptyLineCount -Text $functionBody.$codeBlock.Extent.Text
-                    $codeLineCount = $functionBody.$codeBlock.Extent.EndLineNumber - $functionBody.$codeBlock.Extent.StartLineNumber - 1
+                    if(-not [string]::IsNullOrEmpty($functionBody.$codeBlock.Extent.Text))
+                    {
+                        $commentLineCount = Get-CommentLineCount -Text $functionBody.$codeBlock.Extent.Text
+                        $emptyLineCount = Get-EmptyLineCount -Text $functionBody.$codeBlock.Extent.Text
+                        $codeLineCount = $functionBody.$codeBlock.Extent.EndLineNumber - $functionBody.$codeBlock.Extent.StartLineNumber - 1
+                    }
+
                     $length += ($codeLineCount - $commentLineCount - $emptyLineCount)
                 }
             }
