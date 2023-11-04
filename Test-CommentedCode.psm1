@@ -131,7 +131,7 @@ function Test-CommentedCode
             }
             while($comment.StartsWith("#"))
             {
-                $comment = $comment.Substring(1, $token.Text.Length - 1).Trim()
+                $comment = $comment.Substring(1, $comment.Length - 1).Trim()
             }
 
             if([string]::IsNullOrEmpty($comment))
@@ -145,9 +145,9 @@ function Test-CommentedCode
             $isCommentedCode = $isCommentedCode -or ($null -ne ($ast.FindAll({ $true }, $true) | Where-Object {$null -ne $_.Expression}))
 
             if($isCommentedCode){
-                $findingToken = $scriptBlockTokens | Where-Object {$_.Kind -eq "Comment" -and $_.Text -eq $token.Text}
+                $findingToken = @($scriptBlockTokens | Where-Object {$_.Kind -eq "Comment" -and $_.Text -eq $token.Text})
                 $params = @{
-                    Extent = $findingToken.Extent
+                    Extent = $findingToken[0].Extent
                     Description = "Your comment -> $comment <- contains code."
                     Correction = "Unused Code detected. Please remove the code which was commented out."
                     Message = "Your comment -> $comment <- contains code. Please remove the code which was commented out from script."
