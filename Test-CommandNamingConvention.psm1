@@ -20,6 +20,12 @@
     )
 
     process{
+        if($ast.Extent.Text.ToString().StartsWith(". "))
+        {
+            # do not report dot sourcing like: . "$path\$file"
+            return
+        }
+
         $commandName = $ast.CommandElements[0].Value
         $verb, $noun, $rest = $commandName -split '-'
         $verbParts = $verb -split '\\'
