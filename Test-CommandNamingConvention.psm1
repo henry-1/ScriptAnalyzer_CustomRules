@@ -26,6 +26,13 @@
             return
         }
 
+        if($ast.Parent.Parent.Extent.Text.StartsWith("throw"))
+        {
+            # do not report an error for throwing an exception
+            return
+        }
+
+
         $commandName = $ast.CommandElements[0].Value
         $verb, $noun, $rest = $commandName -split '-'
         $verbParts = $verb -split '\\'
