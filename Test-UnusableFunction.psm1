@@ -120,11 +120,11 @@ function Test-UnusableFunction {
                     $msg = "Read-Host makes your scripts unsuable inside of other scripts, because it means part of your script cannot be controlled by parameters.  If you need to prompt for a value, you should create a mandatory parameter."
                 }
 
-                $params = {}
+                $params = @{}
                 $params.Add("StartLine", $commandElement.Extent.StartLineNumber)
                 $params.Add("EndLine", $commandElement.Extent.EndLineNumber)
                 $params.Add("StartColumn", $commandElement.Extent.StartColumnNumber)
-                $params.Add("EndColumn", $codeBlock.Extent.EndColumnNumber)
+                $params.Add("EndColumn", $commandElement.Extent.EndColumnNumber)
                 $params.Add("Correction",  "Command $($commandElement.Value) makes your script unusable.")
                 $params.Add("OptionalDescription", 'Rewrite your script.')
                 $params.Add("Message", $msg)
