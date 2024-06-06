@@ -13,7 +13,7 @@ function Test-Backtick {
         .OUTPUTS
             [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]]
         .LINK
-            https://marketplace.visualstudio.com/items?itemName=Gruntfuggly.todo-tree
+            https://poshcode.gitbook.io/powershell-practice-and-style/style-guide/readability
     #>
     [cmdletbinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
