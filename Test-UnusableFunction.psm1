@@ -104,12 +104,12 @@ function Test-UnusableFunction {
             return $ReturnValue
         }
 
-        $unusableCommands = @("Write-Host", "Read-Host")
+        $unusableCommands = @("write-host", "read-host", "out-host")
     }
 
     process{
         $ScriptblockAst.FindAll( $CommandPredicate, $true) | ForEach-Object {
-            if($unusableCommands.Contains($_.CommandElements[0].Value))
+            if($unusableCommands.Contains($_.CommandElements[0].Value.ToLower()))
             {
                 $commandElement = $_
                 $command = $commandElement.CommandElements[0]
