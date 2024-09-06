@@ -49,6 +49,19 @@ function Test-Backtick {
             return $ReturnValue
         }
 
+        [ScriptBlock]$ExpandableStringExpressionPredicate = {
+            param
+            (
+                [System.Management.Automation.Language.Ast]$Ast
+            )
+            [bool]$ReturnValue = $false
+
+            if ($Ast -is [System.Management.Automation.Language.ExpandableStringExpressionAst]) {
+                $ReturnValue = $true;
+            }
+            return $ReturnValue
+        }
+
         function Get-PSScriptAnalyzerError
         {
             <#
@@ -129,6 +142,23 @@ function Test-Backtick {
                 }
 
         $ScriptblockAst.FindAll($CommandAstPredicate,$true) |
+            Where-Object { $_.Extent.Text.Contains("``") } |
+            Where-Object {$_.Extent.Text -notmatch $matchTab -and $_.Extent.Text -notmatch $matchNewLine} |
+            ForEach-Object {
+                $params = @{
+                    StartLine = $_.Extent.StartLineNumber
+                    EndLine = $_.Extent.EndLineNumber
+                    StartColumn = $_.Extent.StartColumnNumber
+                    EndColumn = $_.Extent.EndColumnNumber
+                    Correction = "Use Splatting instead of Backticks."
+                    OptionalDescription = "For better readability use Splatting instead of Backticks."
+                    Message = "Avoid Backticks"
+                    Extent = $_.Extent
+                }
+                Get-PSScriptAnalyzerError @params
+            }
+
+            $ScriptblockAst.FindAll($ExpandableStringExpressionPredicate,$true) |
             Where-Object { $_.Extent.Text.Contains("``") } |
             Where-Object {$_.Extent.Text -notmatch $matchTab -and $_.Extent.Text -notmatch $matchNewLine} |
             ForEach-Object {
