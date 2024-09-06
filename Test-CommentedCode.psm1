@@ -1,4 +1,4 @@
-﻿function Get-PSScriptAnalyzerError
+function Get-PSScriptAnalyzerError
 {
     <#
         .SYNOPSIS
@@ -65,19 +65,20 @@
     }
 }
 
-# Get ScriptBlocks
-[ScriptBlock]$FunctionPredicate = {
-    param
-    (
-        [System.Management.Automation.Language.Ast]$Ast
+function Get-CommentTokenText{
+    param(
+        [string]$Comment
     )
-    [bool]$ReturnValue = $false
-
-    if ($Ast -is [System.Management.Automation.Language.FunctionDefinitionAst])
+    if($Comment.StartsWith("<#") -and $Comment -inotlike "*.SYNOPSIS*")
     {
-        $ReturnValue = $true;
+        $Comment = $Comment.Substring(2, $Comment.Length - 4).Trim()
     }
-    return $ReturnValue
+    while($comment.StartsWith("#"))
+    {
+        $comment = $comment.Substring(1, $comment.Length - 1).Trim()
+    }
+
+    return $Comment
 }
 
 function Test-CommentedCode
@@ -108,56 +109,21 @@ function Test-CommentedCode
     $scriptBlockTokens =  $null
     [System.Management.Automation.Language.Parser]::ParseInput($ScriptblockAst.Extent.Text, [ref]$scriptBlockTokens, [ref]$null) | Out-Null
 
+    $scriptBlockTokens | Where-Object { $_.Kind -eq "Comment"} | ForEach-Object {
+        $extent = $_.Extent
+        $comment = Get-CommentTokenText -Comment $extent.Text
 
-    $ScriptBlockAst.FindAll($FunctionPredicate, $true) | ForEach-Object {
-        $functionText = $_.Extent.text
-        $astTokens = $astErr =  $null
-
-        [System.Management.Automation.Language.Parser]::ParseInput($functionText, [ref]$astTokens, [ref]$astErr) | Out-Null
-
-        $commentTokens = $astTokens | Where-Object { $_.Kind -eq "Comment"}
-        foreach($token in $commentTokens)
-        {
-            $isCommentedCode = $false
-            $comment = [string]::Empty
-
-            if($token.Text.StartsWith("<#") -and $token.Text -inotlike "*.SYNOPSIS*")
-            {
-                $comment = $token.Text.Substring(2, $token.Text.Length - 4).Trim()
-            }
-            if($token.Text.StartsWith("#"))
-            {
-                $comment = $token.Text.Substring(1, $token.Text.Length - 1).Trim()
-            }
-            while($comment.StartsWith("#"))
-            {
-                $comment = $comment.Substring(1, $comment.Length - 1).Trim()
-            }
-
-            if([string]::IsNullOrEmpty($comment))
-            {
-                continue
-            }
-
-            $ast = [System.Management.Automation.Language.Parser]::ParseInput($comment, [ref]$null, [ref]$null)
-
-            $isCommentedCode = ($null -ne ($ast.FindAll({ $true }, $true) | Where-Object {$null -ne $_.Operator}))
-            $isCommentedCode = $isCommentedCode -or ($null -ne ($ast.FindAll({ $true }, $true) | Where-Object {$null -ne $_.Expression}))
-
-            if($isCommentedCode){
-                $findingToken = @($scriptBlockTokens | Where-Object {$_.Kind -eq "Comment" -and $_.Text -eq $token.Text})
-                $params = @{
-                    Extent = $findingToken[0].Extent
-                    Description = "Your comment -> $comment <- contains code."
-                    Correction = "Unused Code detected. Please remove the code which was commented out."
-                    Message = "Your comment -> $comment <- contains code. Please remove the code which was commented out from script."
-                    RuleName = "Test-CommentedCode"
-                    Severity = "Warning"
-                    RuleSuppressionID = "Test-CommentedCode"
-                }
-                Get-PSScriptAnalyzerError @params
-            }
+        $params = @{
+            Extent = $extent
+            Description = "Your comment -> $comment <- contains code."
+            Correction = "Unused Code detected. Please remove the code which was commented out."
+            Message = "Your comment -> $comment <- contains code. Please remove the code which was commented out from script."
+            RuleName = "Test-CommentedCode"
+            Severity = "Warning"
+            RuleSuppressionID = "Test-CommentedCode"
         }
+
+        Get-PSScriptAnalyzerError @params
     }
 }
 
