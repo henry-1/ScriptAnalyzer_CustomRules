@@ -109,12 +109,13 @@ function Test-CommentedCode
     $scriptBlockTokens =  $null
     [System.Management.Automation.Language.Parser]::ParseInput($ScriptblockAst.Extent.Text, [ref]$scriptBlockTokens, [ref]$null) | Out-Null
 
-    $scriptBlockTokens | Where-Object { $_.Kind -eq "Comment"} | ForEach-Object {
-        $extent = $_.Extent
+    $commentTokens = $scriptBlockTokens | Where-Object { $_.Kind -eq "Comment"}
+    $commentTokens | ForEach-Object {
+        $tokenExtent = $_.Extent
         $comment = Get-CommentTokenText -Comment $extent.Text
 
         $params = @{
-            Extent = $extent
+            Extent = $tokenExtent
             Description = "Your comment -> $comment <- contains code."
             Correction = "Unused Code detected. Please remove the code which was commented out."
             Message = "Your comment -> $comment <- contains code. Please remove the code which was commented out from script."
