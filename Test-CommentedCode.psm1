@@ -69,16 +69,38 @@ function Get-CommentTokenText{
     param(
         [string]$Comment
     )
-    if($Comment.StartsWith("<#") -and $Comment -inotlike "*.SYNOPSIS*")
+
+    # Ignore Synopsis
+    if($Comment.StartsWith("<#") -and $Comment -ilike "*.SYNOPSIS*")
+    {
+        return [string]::Empty
+    }
+
+    if($Comment.StartsWith("<#"))
     {
         $Comment = $Comment.Substring(2, $Comment.Length - 4).Trim()
     }
+
     while($comment.StartsWith("#"))
     {
         $comment = $comment.Substring(1, $comment.Length - 1).Trim()
     }
-
+    
     return $Comment
+}
+
+[ScriptBlock]$CommandPredicate = {
+    param
+    (
+        [System.Management.Automation.Language.Ast]$Ast
+    )
+    [bool]$ReturnValue = $false
+
+    if ($Ast -is [System.Management.Automation.Language.CommandAst])
+    {
+        $ReturnValue = $true;
+    }
+    return $ReturnValue
 }
 
 function Test-CommentedCode
@@ -103,28 +125,35 @@ function Test-CommentedCode
     param (
         [parameter( Mandatory )]
         [ValidateNotNullOrEmpty()]
-        [System.Management.Automation.Language.ScriptblockAst]$ScriptblockAst
+        [System.Management.Automation.Language.Token[]]$testToken
     )
 
-    $scriptBlockTokens =  $null
-    [System.Management.Automation.Language.Parser]::ParseInput($ScriptblockAst.Extent.Text, [ref]$scriptBlockTokens, [ref]$null) | Out-Null
+    $commentTokens = $testToken | Where-Object {$_.Kind -eq "Comment"}
 
-    $commentTokens = $scriptBlockTokens | Where-Object { $_.Kind -eq "Comment"}
     $commentTokens | ForEach-Object {
-        $tokenExtent = $_.Extent
-        $comment = Get-CommentTokenText -Comment $extent.Text
+        $token = $_
+        $commentText = Get-CommentTokenText -Comment $token.Extent.Text
 
-        $params = @{
-            Extent = $tokenExtent
-            Description = "Your comment -> $comment <- contains code."
-            Correction = "Unused Code detected. Please remove the code which was commented out."
-            Message = "Your comment -> $comment <- contains code. Please remove the code which was commented out from script."
-            RuleName = "Test-CommentedCode"
-            Severity = "Warning"
-            RuleSuppressionID = "Test-CommentedCode"
+        if(-not [string]::IsNullOrEmpty($commentText))
+        {
+            $ast = [System.Management.Automation.Language.Parser]::ParseInput($commentText, [ref]$null, [ref]$null)
+
+            if(($null -ne $ast.FindAll($CommandPredicate, $true)))
+            {
+
+                $params = @{
+                    Extent = $token.Extent
+                    Description = "Your comment -> $commentText <- contains code."
+                    Correction = "Unused Code detected. Please remove the code which was commented out."
+                    Message = "Your comment -> $commentText <- contains code. Please remove the code which was commented out from script."
+                    RuleName = "Test-CommentedCode"
+                    Severity = "Warning"
+                    RuleSuppressionID = "Test-CommentedCode"
+                }
+
+                Get-PSScriptAnalyzerError @params
+            }
         }
-
-        Get-PSScriptAnalyzerError @params
     }
 }
 
