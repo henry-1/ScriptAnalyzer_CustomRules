@@ -1,4 +1,71 @@
-﻿
+
+function Get-PSScriptAnalyzerError
+{
+    <#
+        .SYNOPSIS
+            Create DiagnosticRecord
+        .DESCRIPTION
+            Create an output that PSScriptAnalyzer expects as finding.
+        .PARAMETER Extent
+            Powershell IScriptExtent
+        .PARAMETER Description
+            Description of the finding
+        .PARAMETER Correction
+            Proposal to correct the finding
+        .PARAMETER Message
+            Message displayed by PSScriptAnalyzer
+        .PARAMETER RuleName
+            PSScriptAnalyzer rule name
+        .PARAMETER Severity
+            Severity of the finding
+        .PARAMETER RuleSuppressionID
+            Rule suppression ID
+        .LINK
+            https://github.com/PowerShell/PSScriptAnalyzer
+    #>
+    param(
+        [parameter( Mandatory )]
+        [ValidateNotNull()]
+        [System.Management.Automation.Language.IScriptExtent]$Extent,
+        [string]$Description = [string]::Empty,
+        [parameter( Mandatory )]
+        [ValidateNotNullOrEmpty()]
+        [string]$Correction,
+        [parameter( Mandatory )]
+        [ValidateNotNullOrEmpty()]
+        [string]$Message = [string]::Empty,
+        [parameter( Mandatory )]
+        [ValidateNotNullOrEmpty()]
+        [string]$RuleName,
+        [string]$Severity = "Warning",
+        [string]$RuleSuppressionID = "RuleSuppressionID"
+    )
+
+    [int]$startLineNumber =  $Extent.StartLineNumber
+    [int]$endLineNumber = $Extent.EndLineNumber
+    [int]$startColumnNumber = $Extent.StartColumnNumber
+    [int]$endColumnNumber = $Extent.EndColumnNumber
+    [string]$correction = $Correction
+    [string]$optionalDescription = $Description
+    $objParams = @{
+    TypeName = 'Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.CorrectionExtent'
+    ArgumentList = $startLineNumber, $endLineNumber, $startColumnNumber,
+                    $endColumnNumber, $correction, $optionalDescription
+    }
+    $correctionExtent = New-Object @objParams
+    $suggestedCorrections = New-Object System.Collections.ObjectModel.Collection[$($objParams.TypeName)]
+    $suggestedCorrections.add($correctionExtent) | Out-Null
+
+    [Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
+        "Message"              = $Message
+        "Extent"               = $Extent
+        "RuleName"             = $RuleName
+        "Severity"             = $Severity
+        "RuleSuppressionID"    = $RuleSuppressionID
+        "SuggestedCorrections" = $suggestedCorrections
+    }
+}
+
 #PSSCRIPTANALYZER SuppressOnce Test-Function
 function Test-DeprecatedCmdlet {
     <#
@@ -22,31 +89,12 @@ function Test-DeprecatedCmdlet {
     param (
         [parameter( Mandatory )]
         [ValidateNotNullOrEmpty()]
-        [System.Management.Automation.Language.ScriptblockAst]$ScriptblockAst
+        [System.Management.Automation.Language.Token[]]$testToken
     )
 
     begin{
 
-        # Find function block
-        [ScriptBlock]$CommandPredicate = {
-            <#
-                .SYNOPSIS
-                    Get Prarameter from script
-                .PARAMETER Ast
-                    AST from script code
-            #>
-            param
-            (
-                [System.Management.Automation.Language.Ast]$Ast
-            )
-            [bool]$ReturnValue = $false
 
-            if ($Ast -is [System.Management.Automation.Language.CommandAst])
-            {
-                $ReturnValue = $true;
-            }
-            return $ReturnValue
-        }
 
         function Get-DeprecatedFunction
         {
@@ -2654,58 +2702,48 @@ function Test-DeprecatedCmdlet {
 
             $result = @{}
             $json = ConvertFrom-Json $deprecatedFunctions
-            $json | ForEach-Object {
-                if(-not $result.ContainsKey($_.Name))
+            foreach($jsonObject in $json)
+            {
+                if(-not $result.ContainsKey($jsonObject.Name))
                 {
-                    $result.Add($_.Name, @($_.Source))
+                    $result.Add($jsonObject.Name, @($jsonObject.Source))
                     continue
                 }
 
-                $result[$_.Name] += $_.Source
+                $result[$jsonObject.Name] += $jsonObject.Source
             }
 
             $result
         }
 
+
         $deprecatedFunctions = Get-DeprecatedFunction
     }
 
     process{
-        $ScriptblockAst.FindAll( $CommandPredicate, $true) | ForEach-Object {
-            $_.CommandElements | ForEach-Object {
-                if(($null -ne $_) -and ($null -ne $_.Value) -and $deprecatedFunctions.ContainsKey($_.Value))
-                {
+        $testToken | Where-Object {$_.TokenFlags -eq "CommandName"} |
+            Where-Object { $deprecatedFunctions.ContainsKey( $_.Value)} |
+                ForEach-Object{
+
                     $commandElement = $_
-                    [int]$startLineNumber =  $commandElement.Extent.StartLineNumber
-                    [int]$endLineNumber = $commandElement.Extent.EndLineNumber
-                    [int]$startColumnNumber = $commandElement.Extent.StartColumnNumber
-                    [int]$endColumnNumber = $commandElement.Extent.EndColumnNumber
-                    [string]$correction = "Cmdlet {0} is deprecated. Please use another module." -f $_.Value
-                    [string]$optionalDescription = 'Microsoft deprecated a list of Powershell modules. Please avoid using cmdlets from these modules.'
-                    $objParams = @{
-                        TypeName = 'Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.CorrectionExtent'
-                        ArgumentList = $startLineNumber, $endLineNumber, $startColumnNumber,
-                                    $endColumnNumber, $correction, $optionalDescription
-                    }
-                    $correctionExtent = New-Object @objParams
-                    $suggestedCorrections = New-Object System.Collections.ObjectModel.Collection[$($objParams.TypeName)]
-                    $suggestedCorrections.add($correctionExtent) | Out-Null
 
-                    $msg = "You are using Cmdlet '{0}' which is contained in one of the following modules ({1}) which are deprecated.`n"  -f
-                                                                                    $_.Value, ($deprecatedFunctions[$_.Value] -join ", ")
+                    $msg = "You are using Cmdlet '{0}' which is contained in one of the following modules ({1}) which are deprecated.{2}"  -f
+                                        $commandElement.Value, ($deprecatedFunctions[$commandElement.Value] -join ", "), [System.Environment]::NewLine
                     $msg += "Please use another module."
+                    $correction = "Cmdlet {0} is deprecated. Please use another module." -f $commandElement.Value
 
-                    [Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
-                        "Message"              = $msg
-                        "Extent"               = $commandElement.Extent
-                        "RuleName"             = "Test-DeprecatedCmdlet"
-                        "Severity"             = "Warning"
-                        "RuleSuppressionID"    = "Test-DeprecatedCmdlet"
-                        "SuggestedCorrections" = $suggestedCorrections
+                    $params = @{
+                        Extent = $commandElement.Extent
+                        Description = 'Microsoft deprecated a list of Powershell modules. Please avoid using cmdlets from these modules.'
+                        Correction = $correction
+                        Message = $msg
+                        RuleName = "Test-DeprecatedCmdlet"
+                        Severity = "Warning"
+                        RuleSuppressionID = "Test-DeprecatedCmdlet"
                     }
+
+                    Get-PSScriptAnalyzerError @params
                 }
-            }
-        }
     }
 }
 
