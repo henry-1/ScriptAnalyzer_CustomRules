@@ -85,7 +85,7 @@ function Get-CommentTokenText{
     {
         $comment = $comment.Substring(1, $comment.Length - 1).Trim()
     }
-    
+
     return $Comment
 }
 
@@ -113,7 +113,7 @@ function Test-CommentedCode
         .PARAMETER ScriptblockAst
             AST of the script to be examined.
         .INPUTS
-            [System.Management.Automation.Language.ScriptBlockAst]
+            [System.Management.Automation.Language.Token[]]
         .OUTPUTS
             [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]]
         .LINK
@@ -125,10 +125,10 @@ function Test-CommentedCode
     param (
         [parameter( Mandatory )]
         [ValidateNotNullOrEmpty()]
-        [System.Management.Automation.Language.Token[]]$testToken
+        [System.Management.Automation.Language.Token[]]$TestToken
     )
 
-    $commentTokens = $testToken | Where-Object {$_.Kind -eq "Comment"}
+    $commentTokens = $TestToken | Where-Object {$_.Kind -eq "Comment"}
 
     $commentTokens | ForEach-Object {
         $token = $_
