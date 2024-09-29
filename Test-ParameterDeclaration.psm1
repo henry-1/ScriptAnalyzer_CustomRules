@@ -1,18 +1,5 @@
-﻿
 
-[ScriptBlock]$ParamBlockPredicate = {
-    param
-    (
-        [System.Management.Automation.Language.Ast]$Ast
-    )
-    [bool]$ReturnValue = $false
-
-    if ($Ast -is [System.Management.Automation.Language.ParamBlockAst])
-    {
-        $ReturnValue = $true;
-    }
-    return $ReturnValue
-}
+#region functions
 
 function Get-PSScriptAnalyzerError
 {
@@ -80,6 +67,22 @@ function Get-PSScriptAnalyzerError
         "SuggestedCorrections" = $suggestedCorrections
     }
 }
+
+[ScriptBlock]$ParamBlockPredicate = {
+    param
+    (
+        [System.Management.Automation.Language.Ast]$Ast
+    )
+    [bool]$ReturnValue = $false
+
+    if ($Ast -is [System.Management.Automation.Language.ParamBlockAst])
+    {
+        $ReturnValue = $true;
+    }
+    return $ReturnValue
+}
+
+#endregion functions
 
 function Test-ParameterDeclaration{
     [cmdletbinding()]
