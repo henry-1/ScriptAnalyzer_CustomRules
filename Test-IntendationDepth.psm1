@@ -1,10 +1,11 @@
-﻿function Test-IntendationDepth
+function Test-IntendationDepth
 {
     <#
         .SYNOPSIS
             Testing intendation depth of Powershell scripts.
         .DESCRIPTION
             Code complexity increases by number of intendations in code.
+            You can define your limt for Intendation Depth in $MaxAllowedIntendation
         .PARAMETER ScriptBlockAst
             ScriptBlockAst to analyze
         .EXAMPLE
@@ -58,8 +59,6 @@
             }
             return $ReturnValue
         }
-
-
 
         $allLines = $ScriptblockAst.Extent.Text.Split("`n")
         $allAsts = $ScriptblockAst.FindAll($AllAstsPredicate,$true)
