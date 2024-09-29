@@ -1,4 +1,72 @@
-﻿function Test-CommandAst{
+#region functions
+
+function Get-PSScriptAnalyzerError{
+    <#
+        .SYNOPSIS
+            Create DiagnosticRecord
+        .DESCRIPTION
+            Create an output that PSScriptAnalyzer expects as finding.
+        .PARAMETER CommandAst
+            Powershell AST
+        .PARAMETER Description
+            Description of the finding
+        .PARAMETER Correction
+            Proposal to correct the finding
+        .PARAMETER Message
+            Message displayed by PSScriptAnalyzer
+        .PARAMETER RuleName
+            PSScriptAnalyzer rule name
+        .PARAMETER Severity
+            Severity of the finding
+        .PARAMETER RuleSuppressionID
+            Rule suppression ID
+        .LINK
+            https://github.com/PowerShell/PSScriptAnalyzer
+    #>
+    param(
+        [parameter( Mandatory )]
+        [ValidateNotNull()]
+        [System.Management.Automation.Language.CommandAst]$CommandAst,
+        [string]$Description = [string]::Empty,
+        [parameter( Mandatory )]
+        [ValidateNotNullOrEmpty()]
+        [string]$Correction,
+        [parameter( Mandatory )]
+        [ValidateNotNullOrEmpty()]
+        [string]$Message = [string]::Empty,
+        [parameter( Mandatory )]
+        [ValidateNotNullOrEmpty()]
+        [string]$RuleName,
+        [string]$Severity = "Warning",
+        [string]$RuleSuppressionID = "RuleSuppressionID"
+    )
+
+    [int]$startLineNumber =  $CommandAst.Extent.StartLineNumber
+    [int]$endLineNumber = $CommandAst.Extent.EndLineNumber
+    [int]$startColumnNumber = $CommandAst.Extent.StartColumnNumber
+    [int]$endColumnNumber = $CommandAst.Extent.EndColumnNumber
+    [string]$correction = $Correction
+    [string]$optionalDescription = $Description
+    $objParams = @{
+    TypeName = 'Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.CorrectionExtent'
+    ArgumentList = $startLineNumber, $endLineNumber, $startColumnNumber,
+                    $endColumnNumber, $correction, $optionalDescription
+    }
+    $correctionExtent = New-Object @objParams
+    $suggestedCorrections = New-Object System.Collections.ObjectModel.Collection[$($objParams.TypeName)]
+    $suggestedCorrections.add($correctionExtent) | Out-Null
+
+    [Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
+        "Message"              = $Message
+        "Extent"               = $CommandAst.Extent
+        "RuleName"             = $RuleName
+        "Severity"             = $Severity
+        "RuleSuppressionID"    = $RuleSuppressionID
+        "SuggestedCorrections" = $suggestedCorrections
+    }
+}
+
+function Test-CommandAst{
     <#
         .SYNOPSIS
             Test if command adheres naming conventions
@@ -88,6 +156,28 @@
 
 }
 
+# Find function block
+[ScriptBlock]$CommandPredicate = {
+    <#
+        .SYNOPSIS
+            Get Prarameter from script
+        .PARAMETER Ast
+            AST from script code
+    #>
+    param
+    (
+        [System.Management.Automation.Language.Ast]$Ast
+    )
+    [bool]$ReturnValue = $false
+
+    if ($Ast -is [System.Management.Automation.Language.CommandAst]) {
+        $ReturnValue = $true;
+    }
+    return $ReturnValue
+}
+
+#endregion functions
+
 function Test-CommandNamingConvention {
     <#
         .SYNOPSIS
@@ -114,93 +204,6 @@ function Test-CommandNamingConvention {
     )
     begin{
 
-        function Get-PSScriptAnalyzerError
-        {
-            <#
-                .SYNOPSIS
-                    Create DiagnosticRecord
-                .DESCRIPTION
-                    Create an output that PSScriptAnalyzer expects as finding.
-                .PARAMETER CommandAst
-                    Powershell AST
-                .PARAMETER Description
-                    Description of the finding
-                .PARAMETER Correction
-                    Proposal to correct the finding
-                .PARAMETER Message
-                    Message displayed by PSScriptAnalyzer
-                .PARAMETER RuleName
-                    PSScriptAnalyzer rule name
-                .PARAMETER Severity
-                    Severity of the finding
-                .PARAMETER RuleSuppressionID
-                    Rule suppression ID
-                .LINK
-                    https://github.com/PowerShell/PSScriptAnalyzer
-            #>
-            param(
-                [parameter( Mandatory )]
-                [ValidateNotNull()]
-                [System.Management.Automation.Language.CommandAst]$CommandAst,
-                [string]$Description = [string]::Empty,
-                [parameter( Mandatory )]
-                [ValidateNotNullOrEmpty()]
-                [string]$Correction,
-                [parameter( Mandatory )]
-                [ValidateNotNullOrEmpty()]
-                [string]$Message = [string]::Empty,
-                [parameter( Mandatory )]
-                [ValidateNotNullOrEmpty()]
-                [string]$RuleName,
-                [string]$Severity = "Warning",
-                [string]$RuleSuppressionID = "RuleSuppressionID"
-            )
-
-            [int]$startLineNumber =  $CommandAst.Extent.StartLineNumber
-            [int]$endLineNumber = $CommandAst.Extent.EndLineNumber
-            [int]$startColumnNumber = $CommandAst.Extent.StartColumnNumber
-            [int]$endColumnNumber = $CommandAst.Extent.EndColumnNumber
-            [string]$correction = $Correction
-            [string]$optionalDescription = $Description
-            $objParams = @{
-            TypeName = 'Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.CorrectionExtent'
-            ArgumentList = $startLineNumber, $endLineNumber, $startColumnNumber,
-                            $endColumnNumber, $correction, $optionalDescription
-            }
-            $correctionExtent = New-Object @objParams
-            $suggestedCorrections = New-Object System.Collections.ObjectModel.Collection[$($objParams.TypeName)]
-            $suggestedCorrections.add($correctionExtent) | Out-Null
-
-            [Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
-                "Message"              = $Message
-                "Extent"               = $CommandAst.Extent
-                "RuleName"             = $RuleName
-                "Severity"             = $Severity
-                "RuleSuppressionID"    = $RuleSuppressionID
-                "SuggestedCorrections" = $suggestedCorrections
-            }
-        }
-
-        # Find function block
-        [ScriptBlock]$CommandPredicate = {
-            <#
-                .SYNOPSIS
-                    Get Prarameter from script
-                .PARAMETER Ast
-                    AST from script code
-            #>
-            param
-            (
-                [System.Management.Automation.Language.Ast]$Ast
-            )
-            [bool]$ReturnValue = $false
-
-            if ($Ast -is [System.Management.Automation.Language.CommandAst]) {
-                $ReturnValue = $true;
-            }
-            return $ReturnValue
-        }
-
         # crate a list of approved verbs
         $standardVerbs = @{}
         Get-Verb |
@@ -222,8 +225,6 @@ function Test-CommandNamingConvention {
 
     process{
 
-
-
         $commandAsts = $ScriptblockAst.FindAll( $CommandPredicate, $true)
         try{
             $commandAsts | Where-Object {$null -ne $_} | Test-CommandAst
@@ -232,7 +233,6 @@ function Test-CommandNamingConvention {
         {
             throw $_
         }
-
     }
 }
 
