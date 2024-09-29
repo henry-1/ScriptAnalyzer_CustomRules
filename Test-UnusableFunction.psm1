@@ -1,4 +1,85 @@
-﻿
+
+#region functions
+
+function Get-PSScriptAnalyzerError
+{
+    <#
+        .SYNOPSIS
+            Create DiagnosticRecord
+        .DESCRIPTION
+            Create an output that PSScriptAnalyzer expects as finding.
+        .PARAMETER StartLine
+            StartLine of the finding
+        .PARAMETER EndLine
+            EndLine of the finding
+        .PARAMETER StartColumn
+            StartColumn of the finding
+        .PARAMETER EndColumn
+            EndColumn iof the finding
+        .PARAMETER Correction
+            Proposal to fix the finding
+        .PARAMETER OptionalDescription
+            Optional description to explain the finding
+        .PARAMETER Message
+            Message displayed by PSScriptAnalyzer
+        .PARAMETER Extent
+            Powershell AST extent
+        .LINK
+            https://github.com/PowerShell/PSScriptAnalyzer
+
+    #>
+    param(
+        [int]$StartLine,
+        [int]$EndLine,
+        [int]$StartColumn,
+        [int]$EndColumn,
+        [string]$Correction,
+        [string]$OptionalDescription,
+        [string]$Message,
+        $Extent
+    )
+
+    $objParams = @{
+        TypeName = 'Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.CorrectionExtent'
+        ArgumentList = $StartLine, $EndLine, $StartColumn,
+                        $EndColumn, $Correction, $OptionalDescription
+    }
+    $correctionExtent = New-Object @objParams
+    $suggestedCorrections = New-Object System.Collections.ObjectModel.Collection[$($objParams.TypeName)]
+    $suggestedCorrections.add($correctionExtent) | Out-Null
+
+    [Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
+        "Message"              = $Message
+        "Extent"               = $Extent
+        "RuleName"             = "Test-UnusableFunction"
+        "Severity"             = "Warning"
+        "RuleSuppressionID"    = "Test-UnusableFunction"
+        "SuggestedCorrections" = $suggestedCorrections
+    }
+}
+
+# Find command block
+[ScriptBlock]$CommandPredicate = {
+    <#
+        .SYNOPSIS
+            Get Prarameter from script
+        .PARAMETER Ast
+            AST from script code
+    #>
+    param
+    (
+        [System.Management.Automation.Language.Ast]$Ast
+    )
+    [bool]$ReturnValue = $false
+
+    if ($Ast -is [System.Management.Automation.Language.CommandAst])
+    {
+        $ReturnValue = $true;
+    }
+    return $ReturnValue
+}
+
+#endregion functions
 
 function Test-UnusableFunction {
     <#
@@ -26,90 +107,13 @@ function Test-UnusableFunction {
 
     begin{
 
-        function Get-PSScriptAnalyzerError
-        {
-            <#
-                .SYNOPSIS
-                    Create DiagnosticRecord
-                .DESCRIPTION
-                    Create an output that PSScriptAnalyzer expects as finding.
-                .PARAMETER StartLine
-                    StartLine of the finding
-                .PARAMETER EndLine
-                    EndLine of the finding
-                .PARAMETER StartColumn
-                    StartColumn of the finding
-                .PARAMETER EndColumn
-                    EndColumn iof the finding
-                .PARAMETER Correction
-                    Proposal to fix the finding
-                .PARAMETER OptionalDescription
-                    Optional description to explain the finding
-                .PARAMETER Message
-                    Message displayed by PSScriptAnalyzer
-                .PARAMETER Extent
-                    Powershell AST extent
-                .LINK
-                    https://github.com/PowerShell/PSScriptAnalyzer
 
-            #>
-            param(
-                [int]$StartLine,
-                [int]$EndLine,
-                [int]$StartColumn,
-                [int]$EndColumn,
-                [string]$Correction,
-                [string]$OptionalDescription,
-                [string]$Message,
-                $Extent
-            )
-
-            $objParams = @{
-                TypeName = 'Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.CorrectionExtent'
-                ArgumentList = $StartLine, $EndLine, $StartColumn,
-                                $EndColumn, $Correction, $OptionalDescription
-            }
-            $correctionExtent = New-Object @objParams
-            $suggestedCorrections = New-Object System.Collections.ObjectModel.Collection[$($objParams.TypeName)]
-            $suggestedCorrections.add($correctionExtent) | Out-Null
-
-            [Microsoft.Windows.Powershell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
-                "Message"              = $Message
-                "Extent"               = $Extent
-                "RuleName"             = "Test-UnusableFunction"
-                "Severity"             = "Warning"
-                "RuleSuppressionID"    = "Test-UnusableFunction"
-                "SuggestedCorrections" = $suggestedCorrections
-            }
-        }
-
-        # Find command block
-        [ScriptBlock]$CommandPredicate = {
-            <#
-                .SYNOPSIS
-                    Get Prarameter from script
-                .PARAMETER Ast
-                    AST from script code
-            #>
-            param
-            (
-                [System.Management.Automation.Language.Ast]$Ast
-            )
-            [bool]$ReturnValue = $false
-
-            if ($Ast -is [System.Management.Automation.Language.CommandAst])
-            {
-                $ReturnValue = $true;
-            }
-            return $ReturnValue
-        }
-
-        $unusableCommands = @("write-host", "read-host", "out-host")
+        $unusableCommands = @("Write-Host", "Read-Host", "Out-Host")
     }
 
     process{
         $ScriptblockAst.FindAll( $CommandPredicate, $true) | ForEach-Object {
-            if($unusableCommands.Contains($_.CommandElements[0].Value.ToLower()))
+            if($unusableCommands.Contains($_.CommandElements[0].Value))
             {
                 $commandElement = $_
                 $command = $commandElement.CommandElements[0]
