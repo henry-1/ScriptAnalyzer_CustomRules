@@ -1,4 +1,4 @@
-﻿function Get-PSScriptAnalyzerError
+function Get-PSScriptAnalyzerError
 {
     <#
         .SYNOPSIS
@@ -73,7 +73,7 @@ function Test-TODO {
         .PARAMETER ScriptblockAst
             AST of the script to be examined.
         .INPUTS
-            [System.Management.Automation.Language.ScriptBlockAst]
+            [System.Management.Automation.Language.Token[]]
         .OUTPUTS
             [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]]
         .LINK
@@ -84,16 +84,14 @@ function Test-TODO {
     param (
         [parameter( Mandatory )]
         [ValidateNotNullOrEmpty()]
-        [System.Management.Automation.Language.ScriptblockAst]$ScriptblockAst
+        [System.Management.Automation.Language.Token[]]$TestToken
     )
 
     begin {
-        $astTokens = $null
-        [System.Management.Automation.Language.Parser]::ParseInput($ScriptblockAst.Extent.Text, [ref]$astTokens, [ref]$null) | Out-Null
     }
 
     process {
-        $astTokens | Where-Object { $_.Kind -eq "Comment" -and -not($_.Text -like "*.SYNOPSIS*") -and $_.Text -like "*TODO*"} | ForEach-Object {
+        $TestToken | Where-Object { $_.Kind -eq "Comment" -and -not($_.Text -like "*.SYNOPSIS*") -and $_.Text -like "*TODO*"} | ForEach-Object {
             $params = @{
                 Extent = $_.Extent
                 Description = "Your comment -> $($_.Text) <- contains TODO."
