@@ -128,31 +128,49 @@ function Test-CommentedCode
         [System.Management.Automation.Language.Token[]]$TestToken
     )
 
+    $requiredStatement = "Requires"
+    $requiredStatements = @("-Version", "-Modules","-PSEdition","-RunAsAdministrator")
+
     $commentTokens = $TestToken | Where-Object {$_.Kind -eq "Comment"}
 
     $commentTokens | ForEach-Object {
+        $tokenIsComment = $true
         $token = $_
         $commentText = Get-CommentTokenText -Comment $token.Extent.Text
 
         if(-not [string]::IsNullOrEmpty($commentText))
         {
-            $ast = [System.Management.Automation.Language.Parser]::ParseInput($commentText, [ref]$null, [ref]$null)
-
-            if(($null -ne $ast.FindAll($CommandPredicate, $true)))
+            if($commentText -like "$requiredStatement*")
             {
-
-                $params = @{
-                    Extent = $token.Extent
-                    Description = "Your comment -> $commentText <- contains code."
-                    Correction = "Unused Code detected. Please remove the code which was commented out."
-                    Message = "Your comment -> $commentText <- contains code. Please remove the code which was commented out from script."
-                    RuleName = "Test-CommentedCode"
-                    Severity = "Warning"
-                    RuleSuppressionID = "Test-CommentedCode"
+                foreach($statement in $requiredStatements)
+                {
+                    if($commentText.contains($statement, 'InvariantCultureIgnoreCase')){
+                        $tokenIsComment = $false
+                    }
                 }
-
-                Get-PSScriptAnalyzerError @params
             }
+
+            if($tokenIsComment)
+            {
+                $ast = [System.Management.Automation.Language.Parser]::ParseInput($commentText, [ref]$null, [ref]$null)
+
+                if(($null -ne $ast.FindAll($CommandPredicate, $true)))
+                {
+
+                    $params = @{
+                        Extent = $token.Extent
+                        Description = "Your comment -> $commentText <- contains code."
+                        Correction = "Unused Code detected. Please remove the code which was commented out."
+                        Message = "Your comment -> $commentText <- contains code. Please remove the code which was commented out from script."
+                        RuleName = "Test-CommentedCode"
+                        Severity = "Warning"
+                        RuleSuppressionID = "Test-CommentedCode"
+                    }
+
+                    Get-PSScriptAnalyzerError @params
+                }
+            }
+
         }
     }
 }
